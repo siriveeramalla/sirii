@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import dj_database_url
 import os
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -54,19 +56,17 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",  # ✅ Add this line
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+
 ]
 
 ROOT_URLCONF = "suhitha.urls"
 
+
+   
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "collobarative_db",
-        "USER": "django_user",
-        "PASSWORD": "Siri@12345",
-        "HOST": "localhost",
-        "PORT": "3306",
-    }
+    'default': dj_database_url.config(default='sqlite:///db.sqlite3')
 }
 
 AUTHENTICATION_BACKENDS = [
@@ -91,3 +91,4 @@ CHANNEL_LAYERS = {
 
 STATIC_URL = "/static/"
 LOGIN_REDIRECT_URL = '/dashboard/'  # Redirect to home page or change it to 'dashboard/' if needed
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
