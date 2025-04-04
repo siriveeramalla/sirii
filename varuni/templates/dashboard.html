@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home | Collaborative Document</title>
+</head>
+<body>
+
+    {% if user.is_authenticated %}
+        <h2>Welcome, {{ user.username }}!</h2>
+        <a href="{% url 'logout' %}">Logout</a>
+
+        <h3>Create a Room</h3>
+        <a href="{% url 'create_room' %}">Create a New Room</a>
+
+        <h3>Join a Room</h3>
+        <ul>
+            {% for room in rooms %}
+                <li>
+                    {{ room.name }} - 
+                    <a href="{% url 'join_room' room.id %}">Join</a>
+                </li>
+            {% empty %}
+                <p>No rooms available. Create one!</p>
+            {% endfor %}
+        </ul>
+
+    {% else %}
+        <h2>Welcome to Collaborative Document</h2>
+        <p>Please <a href="{% url 'login' %}">Login</a> or <a href="{% url 'register' %}">Create an Account</a>.</p>
+    {% endif %}
+
+</body>
+</html>

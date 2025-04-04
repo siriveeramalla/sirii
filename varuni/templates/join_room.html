@@ -1,0 +1,12 @@
+<h2>Join Room: {{ room.name }}</h2>
+<form method="post">
+    {% csrf_token %}
+    <label for="password">Enter Room Password:</label>
+    <input type="password" name="password" required>
+    <button type="submit">Join Room</button>
+</form>
+{% if messages %}
+    {% for message in messages %}
+        <p style="color: red;">{{ message }}</p>
+    {% endfor %}
+{% endif %}
