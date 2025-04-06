@@ -82,17 +82,11 @@ def save_document(request, room_id):
             return JsonResponse({"status": "error", "message": "Room not found"}, status=404)
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 def get_document(request, room_id):
-    room = get_object_or_404(Room, id=room_id)
-    return JsonResponse({"content": room.content})
-
-@csrf_exempt
-def save_document(request, room_id):
-    if request.method == "POST":
-        room = get_object_or_404(Room, id=room_id)
-        data = json.loads(request.body)
-        room.content = data.get("content", "")
-        room.save()
-        return JsonResponse({"message": "Document saved successfully!"})
+    try:
+        room = Room.objects.get(id=room_id)
+        return JsonResponse({'content': room.content})
+    except Room.DoesNotExist:
+        return JsonResponse({'content': ''})
 def get_active_users(request, room_id):
     room = Room.objects.get(id=room_id)
     users = room.participants.all().values_list('username', flat=True)

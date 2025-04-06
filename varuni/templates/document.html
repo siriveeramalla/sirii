@@ -6,6 +6,11 @@
     <title>Collaborative Document - {{ room.name }}</title>
     <link rel="stylesheet" href="{% static 'css/document.css' %}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <link rel="stylesheet"
+          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -58,11 +63,20 @@
             overflow-y: auto;
             text-align: left;
         }
+
+        .user-badge-container {
+            margin-top: 10px;
+        }
+
+        .user-badge {
+            display: inline-block;
+            background: #007BFF;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin: 5px;
+        }
     </style>
-    <link rel="stylesheet"
-    href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
-<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-<script>hljs.highlightAll();</script>
 
 </head>
 <body>
@@ -70,57 +84,64 @@
 <div class="container">
     <h1>Room: {{ room.name }}</h1>
     <p>Start editing the document below:</p>
+
     <div id="active-users" class="user-badge-container"></div>
+
     <div class="toolbar">
         <button type="button" onclick="formatText('bold')"><b>B</b></button>
         <button type="button" onclick="formatText('italic')"><i>I</i></button>
         <button type="button" onclick="formatText('underline')"><u>U</u></button>
         <button onclick="document.execCommand('undo', false, null)">Undo</button>
-    <button onclick="document.execCommand('redo', false, null)">Redo</button>
-    <button onclick="manualSave()">Save</button>
-
+        <button onclick="document.execCommand('redo', false, null)">Redo</button>
+        <button onclick="manualSave()">Save</button>
     </div>
 
     <div id="editor" contenteditable="true">
         <p>This is some regular text in the document.</p>
 
-    <pre><code class="language-python">def hello():
+        <pre><code class="language-python">def hello():
     print("Hello, World!")</code></pre>
 
-    <p>You can continue editing below the code.</p>
+        <p>You can continue editing below the code.</p>
     </div>
 </div>
 
 <script>
     let roomId = "{{ room.id }}";
     let editor = document.getElementById("editor");
-    let socket = new WebSocket(`ws://${window.location.host}/ws/document/${roomId}/`);
     let lastContent = "";
-    document.addEventListener("DOMContentLoaded", function () {
-    loadContent(); // Load content when the page opens
-    setInterval(saveContent, 3000);  // Auto-save every 3 seconds
-});
-function loadContent() {
-    fetch(`/get-document/${roomId}/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.content !== lastContent) {
-                document.getElementById("editor").innerHTML = data.content;
-                lastContent = data.content;
-            }
-        });
-}
 
-    // WebSocket receives content
-    socket.onmessage = function(event) {
+    // Auto switch to wss if HTTPS
+    let socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+    let socket = new WebSocket(`${socketProtocol}://${window.location.host}/ws/document/${roomId}/`);
+
+    document.addEventListener("DOMContentLoaded", function () {
+        loadContent();
+        setInterval(saveContent, 3000); // auto-save every 3s
+        editor.focus();
+    });
+
+    function loadContent() {
+        fetch(`/get-document/${roomId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.content !== lastContent) {
+                    editor.innerHTML = data.content;
+                    lastContent = data.content;
+                    hljs.highlightAll();
+                }
+            });
+    }
+
+    socket.onmessage = function (event) {
         let data = JSON.parse(event.data);
         if (editor.innerHTML !== data.content) {
             editor.innerHTML = data.content;
             lastContent = data.content;
+            hljs.highlightAll();
         }
     };
 
-    // Send content when edited
     function sendUpdate() {
         let content = editor.innerHTML;
         if (content !== lastContent) {
@@ -129,52 +150,59 @@ function loadContent() {
         }
     }
 
-    // Auto-send after typing stops
     editor.addEventListener("input", () => {
         clearTimeout(window.saveTimeout);
         window.saveTimeout = setTimeout(sendUpdate, 1000);
     });
 
-    // Text formatting
     function formatText(command) {
         document.execCommand(command, false, null);
-        editor.focus();  // Focus back to editor after clicking button
+        editor.focus();
     }
 
-    // Initial load on DOM ready
-    document.addEventListener("DOMContentLoaded", function () {
-        editor.focus();
-    });
     function updateActiveUsers() {
-    fetch(`/get-active-users/${roomId}/`)
-        .then(response => response.json())
-        .then(data => {
-            const container = document.getElementById("active-users");
-            container.innerHTML = '';
-            data.users.forEach(user => {
-                const span = document.createElement("span");
-                span.className = "user-badge";
-                span.textContent = user;
-                container.appendChild(span);
+        fetch(`/get-active-users/${roomId}/`)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById("active-users");
+                container.innerHTML = '';
+                data.users.forEach(user => {
+                    const span = document.createElement("span");
+                    span.className = "user-badge";
+                    span.textContent = user;
+                    container.appendChild(span);
+                });
             });
+    }
+
+    setInterval(updateActiveUsers, 5000);
+
+    function manualSave() {
+        let content = document.getElementById("editor").innerHTML;
+        fetch(`/save-document/${roomId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ content: content })
+        }).then(() => {
+            alert("Document saved manually!");
         });
-}
+    }
 
-setInterval(updateActiveUsers, 5000);  // update every 5s
-function manualSave() {
-    let content = document.getElementById("editor").innerHTML;
-    fetch(`/save-document/${roomId}/`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: JSON.stringify({ content: content })
-    }).then(() => {
-        alert("Document saved manually!");
-    });
-}
-
+    function saveContent() {
+        // auto-save (same as manualSave without alert)
+        let content = document.getElementById("editor").innerHTML;
+        fetch(`/save-document/${roomId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ content: content })
+        });
+    }
 </script>
 
 </body>
