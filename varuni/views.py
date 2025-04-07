@@ -11,8 +11,11 @@ from django.contrib.auth.backends import ModelBackend
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.utils import timezone
 from .models import UserStatus
 from django.contrib.auth import logout
+from django.contrib.sessions.models import Session
+from django.contrib.auth.forms import AuthenticationForm
 def home(request):
     return render(request,"home.html")
 def register(request):
@@ -92,27 +95,32 @@ def get_active_users(request, room_id):
     room = Room.objects.get(id=room_id)
     users = room.participants.all().values_list('username', flat=True)
     return JsonResponse({'users': list(users)})
-def custom_login(request):
+def login_view(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
 
-        if user:
-            # Check if already logged in
-            status, created = UserStatus.objects.get_or_create(user=user)
-            if status.is_logged_in:
-                messages.error(request, "User is already logged in on another device.")
-                return redirect('login')
+            # Check for active sessions of the same user
+            sessions = Session.objects.filter(expire_date__gte=timezone.now())
+            for session in sessions:
+                data = session.get_decoded()
+                if str(user.id) == str(data.get('_auth_user_id')):
+                    return render(request, 'login.html', {
+                        'form': form,
+                        'message': "You're already logged in from another device."
+                    })
 
             login(request, user)
-            status.is_logged_in = True
-            status.save()
-            return redirect('dashboard')
-        else:
-            messages.error(request, "Invalid credentials.")
-    return render(request, 'login.html')
 
+            # Update UserStatus (optional but good for tracking)
+            UserStatus.objects.update_or_create(user=user, defaults={'is_logged_in': True})
+
+            return redirect('dashboard')
+    else:
+        form = AuthenticationForm()
+
+    return render(request, 'login.html', {'form': form})
 def custom_logout(request):
     if request.user.is_authenticated:
         try:
