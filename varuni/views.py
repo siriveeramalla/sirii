@@ -11,7 +11,8 @@ from django.contrib.auth.backends import ModelBackend
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-
+from .models import UserStatus
+from django.contrib.auth import logout
 def home(request):
     return render(request,"home.html")
 def register(request):
@@ -91,3 +92,34 @@ def get_active_users(request, room_id):
     room = Room.objects.get(id=room_id)
     users = room.participants.all().values_list('username', flat=True)
     return JsonResponse({'users': list(users)})
+def custom_login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+
+        if user:
+            # Check if already logged in
+            status, created = UserStatus.objects.get_or_create(user=user)
+            if status.is_logged_in:
+                messages.error(request, "User is already logged in on another device.")
+                return redirect('login')
+
+            login(request, user)
+            status.is_logged_in = True
+            status.save()
+            return redirect('dashboard')
+        else:
+            messages.error(request, "Invalid credentials.")
+    return render(request, 'login.html')
+
+def custom_logout(request):
+    if request.user.is_authenticated:
+        try:
+            status = UserStatus.objects.get(user=request.user)
+            status.is_logged_in = False
+            status.save()
+        except UserStatus.DoesNotExist:
+            pass
+    logout(request)
+    return redirect('home')
