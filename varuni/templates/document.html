@@ -80,7 +80,41 @@
 
 </head>
 <body>
+    <div id="editing-users">No one is editing...</div>
 
+    <script>
+     roomId = "{{ room.id }}";
+    
+    function updateEditingStatus() {
+        fetch(`/update-editing-status/${roomId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+    }
+    
+    function fetchEditingUsers() {
+        fetch(`/get-editing-users/${roomId}/`)
+        .then(response => response.json())
+        .then(data => {
+            const usersDiv = document.getElementById("editing-users");
+            if (data.editing.length > 0) {
+                usersDiv.innerText = "Editing: " + data.editing.join(", ");
+            } else {
+                usersDiv.innerText = "No one is editing...";
+            }
+        });
+    }
+    
+    document.getElementById("editor").addEventListener("input", () => {
+        updateEditingStatus();
+    });
+    
+    // Polling every 5 seconds
+    setInterval(fetchEditingUsers, 5000);
+    </script>
+    
 <div class="container">
     <h1>Room: {{ room.name }}</h1>
     <p>Start editing the document below:</p>

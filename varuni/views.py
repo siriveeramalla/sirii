@@ -16,6 +16,30 @@ from .models import UserStatus
 from django.contrib.auth import logout
 from django.contrib.sessions.models import Session
 from django.contrib.auth.forms import AuthenticationForm
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.timezone import now
+from django.core.cache import cache
+
+@csrf_exempt
+def update_editing_status(request, room_id):
+    if request.method == "POST" and request.user.is_authenticated:
+        cache_key = f"editing:{room_id}:{request.user.username}"
+        cache.set(cache_key, True, timeout=10)  # user is "editing" for 10 seconds
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
+
+def get_editing_users(request, room_id):
+    room = Room.objects.get(id=room_id)
+    users = room.participants.all().values_list('username', flat=True)
+    editing_users = []
+
+    for username in users:
+        cache_key = f"editing:{room_id}:{username}"
+        if cache.get(cache_key):
+            editing_users.append(username)
+
+    return JsonResponse({'editing': editing_users})
+
 def home(request):
     return render(request,"home.html")
 def register(request):

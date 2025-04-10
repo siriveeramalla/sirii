@@ -14,4 +14,7 @@ urlpatterns = [
     path('save-document/<int:room_id>/', views.save_document, name='save_document'),
     path('get-document/<int:room_id>/', views.get_document, name='get_document'),
     path('get-active-users/<int:room_id>/', views.get_active_users, name='get_active_users'),
+    path('update-editing-status/<int:room_id>/', views.update_editing_status, name='update_editing_status'),
+    path('get-editing-users/<int:room_id>/', views.get_editing_users, name='get_editing_users'),
+
 ]
