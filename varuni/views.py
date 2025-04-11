@@ -79,11 +79,20 @@ def join_room(request, room_id):
         entered_password = request.POST.get("password")
         if entered_password == room.password:
             room.participants.add(request.user)
+
+            # ✅ Create or update UserStatus with valid room
+            UserStatus.objects.update_or_create(
+                user=request.user,
+                room=room,
+                defaults={'is_logged_in': True}
+            )
+
             return redirect("room", room_id=room.id)
         else:
             messages.error(request, "Incorrect password. Try again.")
     
     return render(request, "join_room.html", {"room": room})
+
 @login_required
 def room_view(request, room_id):
     room = get_object_or_404(Room, id=room_id)
@@ -143,14 +152,13 @@ def login_view(request):
 
             login(request, user)
 
-            # Update UserStatus (optional but good for tracking)
-            UserStatus.objects.update_or_create(user=user, defaults={'is_logged_in': True})
-
+            # ✅ DO NOT update UserStatus here — wait until the user joins a room
             return redirect('dashboard')
     else:
         form = AuthenticationForm()
 
     return render(request, 'login.html', {'form': form})
+
 def custom_logout(request):
     if request.user.is_authenticated:
         try:

@@ -2,9 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.exceptions import ObjectDoesNotExist
 from .models import Room,RoomContent
-
 active_users = {}
-
 class DocumentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
