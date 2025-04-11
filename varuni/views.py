@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login,authenticate
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm,RoomForm
-from .models import Room
+from .models import Room,RoomContent
 from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.models import User
@@ -93,23 +93,22 @@ def document_view(request, room_id):
     return render(request, "document.html", {"room": room})
 
 @csrf_exempt
+@login_required
 def save_document(request, room_id):
     if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            room = Room.objects.get(id=room_id)
-            room.content = data.get("content", "")
-            room.save()
-            return JsonResponse({"status": "success"})
-        except Room.DoesNotExist:
-            return JsonResponse({"status": "error", "message": "Room not found"}, status=404)
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+        data = json.loads(request.body)
+        content = data.get("content", "")
+        room = get_object_or_404(Room, id=room_id)
+
+        room_content, created = RoomContent.objects.get_or_create(room=room)
+        room_content.content = content
+        room_content.save()
+
+        return JsonResponse({"status": "success"})
 def get_document(request, room_id):
-    try:
-        room = Room.objects.get(id=room_id)
-        return JsonResponse({'content': room.content})
-    except Room.DoesNotExist:
-        return JsonResponse({'content': ''})
+    room = get_object_or_404(Room, id=room_id)
+    room_content, created = RoomContent.objects.get_or_create(room=room)
+    return JsonResponse({'content': room_content.content})
 
 def get_active_users(request, room_id):
     sessions = Session.objects.filter(expire_date__gte=now())

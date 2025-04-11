@@ -3,18 +3,36 @@
 <html>
 <head>
     <title>Home | Collaborative Document</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .logout-bar {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 14px;
+        }
+        .logout-bar a {
+            color: #e74c3c;
+            text-decoration: none;
+        }
+        .logout-bar a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
 
     {% if user.is_authenticated %}
-        <h2>Welcome, {{ user.username }}!</h2>
-        <div style="text-align: right; margin: 10px;">
-            <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" style="padding: 5px 10px;">Logout</button>
-            </form>
+        <div class="logout-bar">
+            Logged in as <strong>{{ user.username }}</strong> |
+            <a href="{% url 'logout' %}">Logout</a>
         </div>
-        
+
+        <h2>Welcome, {{ user.username }}!</h2>
 
         <h3>Create a Room</h3>
         <a href="{% url 'create_room' %}">Create a New Room</a>
@@ -30,7 +48,6 @@
                 <p>No rooms available. Create one!</p>
             {% endfor %}
         </ul>
-
     {% else %}
         <h2>Welcome to Collaborative Document</h2>
         <p>Please <a href="{% url 'login' %}">Login</a> or <a href="{% url 'register' %}">Create an Account</a>.</p>

@@ -4,14 +4,28 @@ from django.contrib.auth.models import User
 class Room(models.Model):
     name = models.CharField(max_length=255, unique=True)
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_rooms")
-    password = models.CharField(max_length=255)  # Password for the room
+    password = models.CharField(max_length=255)
     participants = models.ManyToManyField(User, related_name="rooms", blank=True)
-    content = models.TextField(default="")  
+    
+
+    def __str__(self):
+        return self.name
+
 class UserStatus(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_logged_in = models.BooleanField(default=False)
+    room= models.ForeignKey(Room, on_delete=models.CASCADE) 
+    
+
+    def __str__(self):
+        return f"{self.user.username} in {self.room.name}"
+
 class LoggedInUser(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     session_key = models.CharField(max_length=40)
+
     def __str__(self):
-        return self.name
+        return self.user.username
+class RoomContent(models.Model):
+    room = models.OneToOneField(Room, on_delete=models.CASCADE)
+    content = models.TextField(blank=True)
