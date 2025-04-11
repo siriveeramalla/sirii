@@ -2,32 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
+            background: #f0f4f8;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-        .error {
-            color: red;
-            margin-bottom: 15px;
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 12px 10px;
+            margin: 12px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            width: 100%;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .link {
+            margin-top: 15px;
+            display: block;
         }
     </style>
 </head>
 <body>
+<div class="container">
     <h2>Login</h2>
-
-    {% if message %}
-        <div class="error">{{ message }}</div>
-    {% endif %}
-
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
+        {% if message %}
+            <p style="color: red;">{{ message }}</p>
+        {% endif %}
         <button type="submit">Login</button>
     </form>
-
-    <a href="{% url 'register' %}">Create Account</a>
+    <a class="link" href="{% url 'register' %}">Don't have an account? Register</a>
+</div>
 </body>
 </html>

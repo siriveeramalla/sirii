@@ -2,23 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
+    <style>
+        body {
+            background: #f0f4f8;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 12px 10px;
+            margin: 12px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 12px;
+            width: 100%;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .link {
+            margin-top: 15px;
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <h2>Create an Account</h2>
+<div class="container">
+    <h2>Register</h2>
     <form method="post">
         {% csrf_token %}
-        
-        <label for="username">Username:</label>
-        <input type="text" name="username" required>
-
-        <label for="password">Password:</label>
-        <input type="password" name="password" required>
-
-        <button type="submit">Register</button>
+        {{ form.as_p }}
+        {% if error %}
+            <p style="color: red;">{{ error }}</p>
+        {% endif %}
+        <button type="submit">Create Account</button>
     </form>
-    
-    <a href="{% url 'login' %}">Already have an account? Login</a>
+    <a class="link" href="{% url 'login' %}">Already have an account? Login</a>
+</div>
 </body>
 </html>

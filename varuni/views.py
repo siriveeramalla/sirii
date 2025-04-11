@@ -44,21 +44,16 @@ def home(request):
     return render(request,"home.html")
 def register(request):
     if request.method == "POST":
-        username = request.POST.get("username")  # ✅ Use .get() to avoid KeyError
-        password = request.POST.get("password")
-        
-        if not username or not password:  # ✅ Check if fields are empty
-            return render(request, "register.html", {"error": "All fields are required."})
-        
-        user = User.objects.create_user(username=username, password=password)
-        
-        user = authenticate(request, username=username, password=password)
-        
-        if user is not None:
-            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-            return redirect("dashboard")  # Change to your actual dashboard URL
-
-    return render(request, "register.html")
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            return redirect("dashboard")
+        else:
+            return render(request, "register.html", {"form": form})
+    else:
+        form = UserCreationForm()
+    return render(request, "register.html", {"form": form})
 @login_required
 def dashboard(request):
     rooms = Room.objects.all()  # Get all rooms
@@ -115,10 +110,22 @@ def get_document(request, room_id):
         return JsonResponse({'content': room.content})
     except Room.DoesNotExist:
         return JsonResponse({'content': ''})
+
 def get_active_users(request, room_id):
-    room = Room.objects.get(id=room_id)
-    users = room.participants.all().values_list('username', flat=True)
-    return JsonResponse({'users': list(users)})
+    sessions = Session.objects.filter(expire_date__gte=now())
+    active_user_ids = []
+
+    for session in sessions:
+        data = session.get_decoded()
+        user_id = data.get('_auth_user_id')
+        if user_id:
+            active_user_ids.append(int(user_id))
+
+    users_in_room = UserStatus.objects.filter(room_id=room_id, user_id__in=active_user_ids)
+    # Only show users who are really logged in
+    return JsonResponse({
+        "users": [u.user.username for u in users_in_room]
+    })
 def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
