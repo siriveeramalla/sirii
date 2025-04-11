@@ -6,115 +6,44 @@
     <title>Collaborative Document - {{ room.name }}</title>
     <link rel="stylesheet" href="{% static 'css/document.css' %}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <link rel="stylesheet"
-          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
+        .cursor-indicator {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: red;
+            animation: blink 1s step-start 0s infinite;
+            z-index: 999;
         }
 
-        .container {
-            width: 80%;
-            margin: 20px auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        .user-label {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 5px;
+            font-size: 12px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 999;
         }
 
-        h1 {
-            color: #333;
-        }
-
-        .toolbar {
-            margin: 10px 0;
-            padding: 5px;
-            background: #ddd;
-            border-radius: 5px;
-        }
-
-        .toolbar button {
-            padding: 5px 10px;
-            margin: 5px;
-            cursor: pointer;
-            border: none;
-            background: #fff;
-            border-radius: 3px;
-        }
-
-        .toolbar button:hover {
-            background: #ccc;
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
         }
 
         #editor {
-            width: 100%;
-            height: 400px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            background: #fff;
-            outline: none;
-            overflow-y: auto;
-            text-align: left;
-        }
-
-        .user-badge-container {
-            margin-top: 10px;
-        }
-
-        .user-badge {
-            display: inline-block;
-            background: #007BFF;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            margin: 5px;
+            position: relative;
         }
     </style>
-
 </head>
 <body>
-    <div id="editing-users">No one is editing...</div>
 
-    <script>
-     roomId = "{{ room.id }}";
-    
-    function updateEditingStatus() {
-        fetch(`/update-editing-status/${roomId}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        });
-    }
-    
-    function fetchEditingUsers() {
-        fetch(`/get-editing-users/${roomId}/`)
-        .then(response => response.json())
-        .then(data => {
-            const usersDiv = document.getElementById("editing-users");
-            if (data.editing.length > 0) {
-                usersDiv.innerText = "Editing: " + data.editing.join(", ");
-            } else {
-                usersDiv.innerText = "No one is editing...";
-            }
-        });
-    }
-    
-    document.getElementById("editor").addEventListener("input", () => {
-        updateEditingStatus();
-    });
-    
-    // Polling every 5 seconds
-    setInterval(fetchEditingUsers, 5000);
-    </script>
-    
+<div id="editing-users">No one is editing...</div>
+
 <div class="container">
     <h1>Room: {{ room.name }}</h1>
     <p>Start editing the document below:</p>
@@ -130,30 +59,132 @@
         <button onclick="manualSave()">Save</button>
     </div>
 
-    <div id="editor" contenteditable="true">
-        <p>This is some regular text in the document.</p>
-
-        <pre><code class="language-python">def hello():
-    print("Hello, World!")</code></pre>
-
-        <p>You can continue editing below the code.</p>
-    </div>
+    <div id="editor" contenteditable="true"></div>
 </div>
 
 <script>
     let roomId = "{{ room.id }}";
+    let username = "{{ request.user.username }}";
     let editor = document.getElementById("editor");
     let lastContent = "";
+    let cursors = {};
 
-    // Auto switch to wss if HTTPS
     let socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
     let socket = new WebSocket(`${socketProtocol}://${window.location.host}/ws/document/${roomId}/`);
 
-    document.addEventListener("DOMContentLoaded", function () {
-        loadContent();
-        setInterval(saveContent, 3000); // auto-save every 3s
-        editor.focus();
+    function getCaretPosition() {
+        let selection = window.getSelection();
+        if (selection.rangeCount === 0) return null;
+        let range = selection.getRangeAt(0);
+        return {
+            offset: range.startOffset,
+            path: getPath(range.startContainer)
+        };
+    }
+
+    function getPath(node) {
+        let path = [];
+        while (node && node !== editor) {
+            let index = Array.from(node.parentNode.childNodes).indexOf(node);
+            path.unshift(index);
+            node = node.parentNode;
+        }
+        return path;
+    }
+
+    function getNodeByPath(path) {
+        let node = editor;
+        for (let i of path) {
+            node = node.childNodes[i];
+        }
+        return node;
+    }
+
+    function insertCursor(username, caret) {
+        if (!caret || !caret.path) return;
+        let node = getNodeByPath(caret.path);
+        if (!node) return;
+
+        let range = document.createRange();
+        let offset = Math.min(caret.offset, node.length || 0);
+        range.setStart(node, offset);
+        range.collapse(true);
+
+        let rect = range.getBoundingClientRect();
+        let editorRect = editor.getBoundingClientRect();
+
+        let cursorId = `cursor-${username}`;
+        let labelId = `label-${username}`;
+
+        removeCursor(username); // Remove old
+
+        let cursor = document.createElement("div");
+        cursor.id = cursorId;
+        cursor.className = "cursor-indicator";
+        cursor.style.left = `${rect.left - editorRect.left}px`;
+        cursor.style.top = `${rect.top - editorRect.top}px`;
+
+        let label = document.createElement("div");
+        label.id = labelId;
+        label.className = "user-label";
+        label.textContent = username;
+        label.style.left = `${rect.left - editorRect.left + 5}px`;
+        label.style.top = `${rect.top - editorRect.top - 20}px`;
+
+        editor.appendChild(cursor);
+        editor.appendChild(label);
+    }
+
+    function removeCursor(username) {
+        let oldCursor = document.getElementById(`cursor-${username}`);
+        let oldLabel = document.getElementById(`label-${username}`);
+        if (oldCursor) oldCursor.remove();
+        if (oldLabel) oldLabel.remove();
+    }
+
+    function sendUpdate() {
+        let content = editor.innerHTML;
+        let caret = getCaretPosition();
+
+        socket.send(JSON.stringify({
+            type: "update",
+            content: content,
+            username: username,
+            caret: caret
+        }));
+
+        lastContent = content;
+    }
+
+    editor.addEventListener("input", () => {
+        sendUpdate();
     });
+
+    document.addEventListener("selectionchange", () => {
+        sendUpdate();
+    });
+
+    socket.onopen = () => {
+        loadContent();
+        setInterval(saveContent, 3000);
+        editor.focus();
+    };
+
+    socket.onmessage = (event) => {
+        let data = JSON.parse(event.data);
+
+        if (data.type === "document_update") {
+            if (data.content !== lastContent) {
+                editor.innerHTML = data.content;
+                lastContent = data.content;
+                hljs.highlightAll();
+            }
+        }
+
+        if (data.type === "cursor_update" && data.username !== username) {
+            insertCursor(data.username, data.caret);
+        }
+    };
 
     function loadContent() {
         fetch(`/get-document/${roomId}/`)
@@ -167,31 +198,33 @@
             });
     }
 
-    socket.onmessage = function (event) {
-        let data = JSON.parse(event.data);
-        if (editor.innerHTML !== data.content) {
-            editor.innerHTML = data.content;
-            lastContent = data.content;
-            hljs.highlightAll();
-        }
-    };
-
-    function sendUpdate() {
-        let content = editor.innerHTML;
-        if (content !== lastContent) {
-            socket.send(JSON.stringify({ content: content }));
-            lastContent = content;
-        }
-    }
-
-    editor.addEventListener("input", () => {
-        clearTimeout(window.saveTimeout);
-        window.saveTimeout = setTimeout(sendUpdate, 1000);
-    });
-
     function formatText(command) {
         document.execCommand(command, false, null);
         editor.focus();
+    }
+
+    function manualSave() {
+        fetch(`/save-document/${roomId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ content: editor.innerHTML })
+        }).then(() => {
+            alert("Document saved manually!");
+        });
+    }
+
+    function saveContent() {
+        fetch(`/save-document/${roomId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ content: editor.innerHTML })
+        });
     }
 
     function updateActiveUsers() {
@@ -209,35 +242,29 @@
             });
     }
 
+    function updateEditingStatus() {
+        fetch(`/update-editing-status/${roomId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+    }
+
+    function fetchEditingUsers() {
+        fetch(`/get-editing-users/${roomId}/`)
+            .then(response => response.json())
+            .then(data => {
+                const usersDiv = document.getElementById("editing-users");
+                if (data.editing.length > 0) {
+                    usersDiv.innerText = "Editing: " + data.editing.join(", ");
+                } else {
+                    usersDiv.innerText = "No one is editing...";
+                }
+            });
+    }
+
+    editor.addEventListener("input", updateEditingStatus);
+    setInterval(fetchEditingUsers, 5000);
     setInterval(updateActiveUsers, 5000);
-
-    function manualSave() {
-        let content = document.getElementById("editor").innerHTML;
-        fetch(`/save-document/${roomId}/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify({ content: content })
-        }).then(() => {
-            alert("Document saved manually!");
-        });
-    }
-
-    function saveContent() {
-        // auto-save (same as manualSave without alert)
-        let content = document.getElementById("editor").innerHTML;
-        fetch(`/save-document/${roomId}/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify({ content: content })
-        });
-    }
 </script>
-
 </body>
 </html>
