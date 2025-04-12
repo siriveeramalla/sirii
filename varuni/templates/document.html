@@ -59,6 +59,7 @@
             border-radius: 5px;
             background-color: #fff;
             overflow-y: auto;
+            position: relative;
         }
 
         #active-users, #editing-users {
@@ -109,122 +110,202 @@
         Logged in as <strong>{{ user.username }}</strong> |
         <a href="{% url 'logout' %}">Logout</a>
     </div>
-{% endif %}
-<div class="container">
-    <h1>Room: {{ room.name }}</h1>
+    {% endif %}
+    <div class="container">
+        <h1>Room: {{ room.name }}</h1>
 
-    <div id="editing-users">No one is editing...</div>
-    <div id="active-users" class="user-badge-container"></div>
+        <div id="editing-users">No one is editing...</div>
+        <div id="active-users" class="user-badge-container"></div>
 
-    <div class="toolbar">
-        <button onclick="formatText('bold')"><b>B</b></button>
-        <button onclick="formatText('italic')"><i>I</i></button>
-        <button onclick="formatText('underline')"><u>U</u></button>
-        <button onclick="document.execCommand('undo', false, null)">Undo</button>
-        <button onclick="document.execCommand('redo', false, null)">Redo</button>
-        <button onclick="manualSave()">💾 Save</button>
+        <div class="toolbar">
+            <button onclick="formatText('bold')"><b>B</b></button>
+            <button onclick="formatText('italic')"><i>I</i></button>
+            <button onclick="formatText('underline')"><u>U</u></button>
+            <button onclick="document.execCommand('undo', false, null)">Undo</button>
+            <button onclick="document.execCommand('redo', false, null)">Redo</button>
+            <button onclick="manualSave()">💾 Save</button>
+        </div>
+
+        <div id="editor" contenteditable="true"></div>
     </div>
 
-    <div id="editor" contenteditable="true"></div>
-</div>
+    <script>
+        let roomId = "{{ room.id }}";
+        let username = "{{ request.user.username }}";
+        let editor = document.getElementById("editor");
+        let lastContent = "";
 
-<script>
-    let roomId = "{{ room.id }}";
-    let username = "{{ request.user.username }}";
-    let editor = document.getElementById("editor");
-    let lastContent = "";
+        let socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+        let socket = new WebSocket(`${socketProtocol}://${window.location.host}/ws/document/${roomId}/`);
 
-    let socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-    let socket = new WebSocket(`${socketProtocol}://${window.location.host}/ws/document/${roomId}/`);
+        document.addEventListener("DOMContentLoaded", function () {
+            loadContent();
+            setInterval(saveContent, 3000);
+            editor.focus();
+        });
 
-    document.addEventListener("DOMContentLoaded", function () {
-        loadContent();
-        setInterval(saveContent, 3000); // auto-save every 3s
-        editor.focus();
-    });
-
-    function loadContent() {
-        fetch(`/get-document/${roomId}/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.content !== lastContent) {
-                    editor.innerHTML = data.content;
-                    lastContent = data.content;
-                    hljs.highlightAll();
-                }
-            });
-    }
-
-    socket.onmessage = function (event) {
-        let data = JSON.parse(event.data);
-        if (editor.innerHTML !== data.content) {
-            editor.innerHTML = data.content;
-            lastContent = data.content;
-            hljs.highlightAll();
-        }
-    };
-
-    function sendUpdate() {
-        let content = editor.innerHTML;
-        if (content !== lastContent) {
-            socket.send(JSON.stringify({ content: content }));
-            lastContent = content;
-        }
-    }
-
-    editor.addEventListener("input", () => {
-        clearTimeout(window.saveTimeout);
-        window.saveTimeout = setTimeout(sendUpdate, 1000);
-    });
-
-    function formatText(command) {
-        document.execCommand(command, false, null);
-        editor.focus();
-    }
-
-    function updateActiveUsers() {
-        fetch(`/get-active-users/${roomId}/`)
-            .then(response => response.json())
-            .then(data => {
-                const container = document.getElementById("active-users");
-                container.innerHTML = '';
-                data.users.forEach(user => {
-                    const span = document.createElement("span");
-                    span.className = "user-badge";
-                    span.textContent = user;
-                    container.appendChild(span);
+        function loadContent() {
+            fetch(`/get-document/${roomId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.content !== lastContent) {
+                        editor.innerHTML = data.content;
+                        lastContent = data.content;
+                        hljs.highlightAll();
+                    }
                 });
+        }
+
+        socket.onmessage = function (event) {
+            let data = JSON.parse(event.data);
+
+            if (data.content !== lastContent) {
+                editor.innerHTML = data.content;
+                lastContent = data.content;
+                hljs.highlightAll();
+            }
+
+            if (data.username && data.username !== username && data.caret !== null) {
+                showRemoteCursor(data.username, data.caret);
+            }
+        };
+
+        function sendUpdate() {
+            let content = editor.innerHTML;
+            let caret = getCaretCharacterOffsetWithin(editor);
+
+            if (content !== lastContent || caret !== null) {
+                socket.send(JSON.stringify({
+                    content: content,
+                    caret: caret,
+                    username: username
+                }));
+                lastContent = content;
+            }
+        }
+
+        editor.addEventListener("input", () => {
+            clearTimeout(window.saveTimeout);
+            window.saveTimeout = setTimeout(sendUpdate, 1000);
+        });
+
+        function formatText(command) {
+            document.execCommand(command, false, null);
+            editor.focus();
+        }
+
+        function updateActiveUsers() {
+            fetch(`/get-active-users/${roomId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById("active-users");
+                    container.innerHTML = '';
+                    data.users.forEach(user => {
+                        const span = document.createElement("span");
+                        span.className = "user-badge";
+                        span.textContent = user;
+                        container.appendChild(span);
+                    });
+                });
+        }
+
+        setInterval(updateActiveUsers, 5000);
+
+        function manualSave() {
+            let content = document.getElementById("editor").innerHTML;
+            fetch(`/save-document/${roomId}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ content: content })
+            }).then(() => {
+                alert("Document saved manually!");
             });
-    }
+        }
 
-    setInterval(updateActiveUsers, 5000);
+        function saveContent() {
+            let content = document.getElementById("editor").innerHTML;
+            fetch(`/save-document/${roomId}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ content: content })
+            });
+        }
 
-    function manualSave() {
-        let content = document.getElementById("editor").innerHTML;
-        fetch(`/save-document/${roomId}/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify({ content: content })
-        }).then(() => {
-            alert("Document saved manually!");
-        });
-    }
+        function getCaretCharacterOffsetWithin(element) {
+            var caretOffset = 0;
+            var sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                var range = sel.getRangeAt(0);
+                var preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(element);
+                preCaretRange.setEnd(range.endContainer, range.endOffset);
+                caretOffset = preCaretRange.toString().length;
+            }
+            return caretOffset;
+        }
 
-    function saveContent() {
-        // auto-save (same as manualSave without alert)
-        let content = document.getElementById("editor").innerHTML;
-        fetch(`/save-document/${roomId}/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify({ content: content })
-        });
-    }
-</script>
+        function showRemoteCursor(username, offset) {
+            document.querySelectorAll(".cursor-indicator, .user-label").forEach(el => el.remove());
+
+            const range = getRangeFromOffset(editor, offset);
+            if (!range) return;
+
+            const rect = range.getBoundingClientRect();
+            const editorRect = editor.getBoundingClientRect();
+
+            const x = rect.left - editorRect.left;
+            const y = rect.top - editorRect.top;
+
+            const cursor = document.createElement("div");
+            cursor.className = "cursor-indicator";
+            cursor.style.left = `${x}px`;
+            cursor.style.top = `${y}px`;
+
+            const label = document.createElement("div");
+            label.className = "user-label";
+            label.innerText = username;
+            label.style.left = `${x + 5}px`;
+            label.style.top = `${y - 20}px`;
+
+            editor.appendChild(cursor);
+            editor.appendChild(label);
+        }
+
+        function getRangeFromOffset(node, offset) {
+            let currentNode = null;
+            let currentOffset = 0;
+
+            function recurse(node) {
+                if (node.nodeType === 3) {
+                    const len = node.textContent.length;
+                    if (currentOffset + len >= offset) {
+                        currentNode = node;
+                        return offset - currentOffset;
+                    }
+                    currentOffset += len;
+                } else {
+                    for (let i = 0; i < node.childNodes.length; i++) {
+                        const result = recurse(node.childNodes[i]);
+                        if (currentNode) return result;
+                    }
+                }
+                return 0;
+            }
+
+            const innerOffset = recurse(node);
+            if (!currentNode) return null;
+
+            const range = document.createRange();
+            range.setStart(currentNode, innerOffset);
+            range.collapse(true);
+            return range;
+        }
+    </script>
 </body>
 </html>

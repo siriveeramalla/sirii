@@ -1,8 +1,10 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.exceptions import ObjectDoesNotExist
-from .models import Room,RoomContent
+from .models import Room, RoomContent
+
 active_users = {}
+
 class DocumentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
@@ -69,9 +71,12 @@ class DocumentConsumer(AsyncWebsocketConsumer):
 
     async def user_list_update(self, event):
         await self.send(text_data=json.dumps({
-            "type": "user_list",
             "users": event["users"]
         }))
+
+    @staticmethod
+    async def get_room(room_id):
+        return await Room.objects.aget(pk=room_id)
 
     @staticmethod
     async def get_room_content(room_id):
@@ -83,3 +88,4 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     async def save_room_content(room_content, content):
         room_content.content = content
         await room_content.asave(update_fields=["content"])
+
