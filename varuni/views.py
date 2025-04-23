@@ -19,6 +19,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import now
 from django.core.cache import cache
+from django.http import HttpResponse
 
 @csrf_exempt
 def update_editing_status(request, room_id):
@@ -168,3 +169,8 @@ def custom_logout(request):
             pass
     logout(request)
     return redirect('home')
+def logout_room_users(request, room_id):
+    if request.user.is_superuser:  # Only admin allowed
+        count, _ = UserStatus.objects.filter(room_id=room_id).delete()
+        return HttpResponse(f"{count} users logged out from room {room_id}")
+    return HttpResponse("Unauthorized", status=401)

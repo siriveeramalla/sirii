@@ -16,4 +16,6 @@ urlpatterns = [
     path('get-active-users/<int:room_id>/', views.get_active_users, name='get_active_users'),
     path('update-editing-status/<int:room_id>/', views.update_editing_status, name='update_editing_status'),
     path('get-editing-users/<int:room_id>/', views.get_editing_users, name='get_editing_users'),
+    path('logout-room/<str:room_id>/', views.logout_room_users, name='logout_room_users'),
+
 ]
