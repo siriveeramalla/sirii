@@ -73,9 +73,18 @@ ROOT_URLCONF = "suhitha.urls"
 
    
 
+
 DATABASES = {
-    'default': dj_database_url.config(default='sqlite:///db.sqlite3')
-}
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'colab-db',
+        'USER': 'colab_db_l654_user',
+        'PASSWORD': 'your_dbttOn8r9UiBnYRz8tewEdyldKj8rLbFgL',
+        'HOST': 'dpg-cvpbrure5dus73cebo4g-a.render.com',     # e.g., dpg-xyz.render.com
+        'PORT': '5432',
+    }
+    }
+
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
@@ -101,9 +110,10 @@ CHANNEL_LAYERS = {
     },
 }
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),  # Use os.path.join() for concatenating paths
+    os.path.join(BASE_DIR, "static"),
 ]
 
 STATIC_URL = "/static/"
-LOGIN_REDIRECT_URL = '/dashboard/'  # Redirect to home page or change it to 'dashboard/' if needed
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+LOGIN_REDIRECT_URL = '/dashboard/'
