@@ -161,12 +161,10 @@ def login_view(request):
     return render(request, 'login.html', {'form': form})
 
 def custom_logout(request):
-    if request.user.is_authenticated:
-        try:
-            status = UserStatus.objects.get(user=request.user)
-            status.is_logged_in = False
-            status.save()
-        except UserStatus.DoesNotExist:
+    try:
+      if request.user.is_authenticated:
+        UserStatus.objects.filter(user=request.user).delete() 
+    except UserStatus.DoesNotExist:
             pass
     logout(request)
     return redirect('home')
