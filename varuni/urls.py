@@ -4,9 +4,9 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('login/', views.login_view, name='login'),  # use custom login view
+    path('login/', views.login_view, name='login'),
     path('register/', views.register, name='register'),
-    path('logout/', views.custom_logout, name='logout'),  # custom logout to update UserStatus
+    path('logout/', views.custom_logout, name='logout'),
     path('room/<int:room_id>/', views.room_view, name='room'),
     path('create-room/', views.create_room, name='create_room'),
     path('join-room/<int:room_id>/', views.join_room, name='join_room'),
@@ -16,5 +16,4 @@ urlpatterns = [
     path('get-active-users/<int:room_id>/', views.get_active_users, name='get_active_users'),
     path('update-editing-status/<int:room_id>/', views.update_editing_status, name='update_editing_status'),
     path('get-editing-users/<int:room_id>/', views.get_editing_users, name='get_editing_users'),
-
 ]

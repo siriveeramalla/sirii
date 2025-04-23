@@ -6,7 +6,6 @@ class Room(models.Model):
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_rooms")
     password = models.CharField(max_length=255)
     participants = models.ManyToManyField(User, related_name="rooms", blank=True)
-    
 
     def __str__(self):
         return self.name
@@ -14,18 +13,14 @@ class Room(models.Model):
 class UserStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_logged_in = models.BooleanField(default=False)
-    room= models.ForeignKey(Room, on_delete=models.CASCADE) 
-    
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.user.username} in {self.room.name}"
 
-class LoggedInUser(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    session_key = models.CharField(max_length=40)
-
-    def __str__(self):
-        return self.user.username
 class RoomContent(models.Model):
     room = models.OneToOneField(Room, on_delete=models.CASCADE)
     content = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Content for {self.room.name}"

@@ -28,6 +28,7 @@ def update_editing_status(request, room_id):
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'}, status=400)
 
+# Get users who are currently editing
 def get_editing_users(request, room_id):
     room = Room.objects.get(id=room_id)
     users = room.participants.all().values_list('username', flat=True)

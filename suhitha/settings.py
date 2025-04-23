@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import dj_database_url
 import os
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = "your-secret-key"
@@ -27,10 +26,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "channels",
     "allauth",
     "allauth.account",
     "varuni",
+    "channels",
 ]
 TEMPLATES = [
     {
@@ -89,14 +88,21 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-ASGI_APPLICATION = "suhitha.asgi.application"
+
 SILENCED_SYSTEM_CHECKS = ["models.W036"]
 
+# settings.py
+
+ASGI_APPLICATION = 'suhitha.asgi.application'
+
 CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),  # Use os.path.join() for concatenating paths
+]
 
 STATIC_URL = "/static/"
 LOGIN_REDIRECT_URL = '/dashboard/'  # Redirect to home page or change it to 'dashboard/' if needed

@@ -1,0 +1,12 @@
+version: 1
+services:
+  web:
+    type: web
+    name: suhitha
+    env: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    runCommand: gunicorn suhitha.wsgi:application --bind 0.0.0.0:8000
+    region: oregon
