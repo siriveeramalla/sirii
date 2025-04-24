@@ -11,10 +11,12 @@ daphne==4.1.2
 dj-database-url==2.3.0
 Django==5.1.7
 django-allauth==65.7.0
+gunicorn==23.0.0
 hyperlink==21.0.0
 idna==3.10
 incremental==24.7.2
 msgpack==1.1.0
+packaging==25.0
 psycopg2-binary==2.9.10
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
