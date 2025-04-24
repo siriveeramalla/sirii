@@ -9,6 +9,9 @@ class Room(models.Model):
 
     def __str__(self):
         return self.name
+class Document(models.Model):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
 
 class UserStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

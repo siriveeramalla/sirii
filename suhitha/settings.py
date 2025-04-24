@@ -12,10 +12,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import dj_database_url
 import os
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = "your-secret-key"
+SECRET_KEY = "sirisuhitha@12"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
@@ -75,14 +76,10 @@ ROOT_URLCONF = "suhitha.urls"
 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'colab-db',
-        'USER': 'colab_db_l654_user',
-        'PASSWORD': 'your_dbttOn8r9UiBnYRz8tewEdyldKj8rLbFgL',
-        'HOST': 'dpg-cvpbrure5dus73cebo4g-a.render.com',     # e.g., dpg-xyz.render.com
-        'PORT': '5432',
-    }
+   'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / "db.sqlite3",
+        }
     }
 
 

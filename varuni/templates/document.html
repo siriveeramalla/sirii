@@ -166,6 +166,14 @@ p {
         padding: 10px;
     }
 }
+.cursor-marker {
+    position: absolute;
+    background: rgba(0, 0, 255, 0.2);
+    color: blue;
+    font-size: 12px;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
 
     </style>
 </head>
@@ -178,6 +186,7 @@ p {
     {% endif %}
 
     <div id="editing-users">No one is editing...</div>
+    <div id="cursors-container" style="position: absolute; left: 5px; top: 0; z-index: 10;"></div>
 
     <div class="container">
         <h1>Room: {{ room.name }}</h1>
@@ -193,11 +202,14 @@ p {
             <button onclick="document.execCommand('redo', false, null)">Redo</button>
             <button id="save-btn">Save</button>
         </div>
+</div>
+<div id="editor" contenteditable="true" style="min-height: 300px; border: 1px solid #ccc; padding: 10px;">
+    {{ content|safe }}
+</div>
 
-        <div id="editor" contenteditable="true"></div>
-    </div>
+<script>
 
-    <script>
+
         let roomId = "{{ room.id }}";
         let username = "{{ request.user.username }}";
         let editor = document.getElementById("editor");
@@ -303,12 +315,29 @@ p {
         document.addEventListener("selectionchange", sendUpdate);
 
         document.getElementById("save-btn").addEventListener('click', () => {
-            const content = editor.innerText;
-            socket.send(JSON.stringify({
-                type: 'save_document',
-                content: content
-            }));
-        });
+    fetch(`/save-document/${roomId}/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({ content: editor.innerHTML })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Save response:", data);
+        if (data.status === "success") {
+            alert("Document saved!");
+        } else {
+            alert("Failed to save the document.");
+        }
+    })
+    .catch(error => {
+        console.error("Save error:", error);
+        alert("An error occurred while saving.");
+    });
+});
+
 
         socket.onopen = () => {
             loadContent();
@@ -349,18 +378,14 @@ p {
             editor.focus();
         }
 
-        function manualSave() {
-            fetch(`/save-document/${roomId}/`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": "{{ csrf_token }}"
-                },
-                body: JSON.stringify({ content: editor.innerHTML })
-            }).then(() => {
-                alert("Document saved manually!");
-            });
-        }
+        function saveDocument() {
+  socket.send(JSON.stringify({
+    'content': document.querySelector("#editor").value,
+    'cursor_position': document.querySelector("#cursor-position").value
+  }));
+  alert("Document saved!");
+}
+
 
         function saveContent() {
             fetch(`/save-document/${roomId}/`, {

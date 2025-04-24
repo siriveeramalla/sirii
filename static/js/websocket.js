@@ -1,5 +1,5 @@
 // Get the room ID from the URL (for example, "/room/1/")
-const roomId = window.location.pathname.split('/')[2];
+/*const roomId = window.location.pathname.split('/')[2];
 
 // WebSocket connection to the room's document
 const socket = new WebSocket(`ws://127.0.0.1:8000/ws/document/${roomId}/`);
@@ -76,18 +76,19 @@ function sendEditingStatus() {
 }
 
 // Function to save document content via AJAX to the backend
-function manualSave() {
-    fetch(`/save-document/${roomId}/`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: JSON.stringify({ content: editor.innerHTML })
-    }).then(() => {
-        alert("Document saved manually!");
-    });
+function saveContent() {
+    if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+            type: 'save_document',
+            content: document.getElementById('document').innerHTML
+        }));
+    }
 }
+function manualSave() {
+    saveContent();  // Use WebSocket save
+    alert("Document saved!");
+}
+
 
 // Add an event listener to capture document changes and send updates to the server
 document.getElementById('document').addEventListener('input', function() {
@@ -105,4 +106,92 @@ function getUserName() {
 // When there is an error with the WebSocket connection
 socket.onerror = function(error) {
     console.error('WebSocket Error:', error);
+};*/
+const socket = new WebSocket(`ws://${window.location.host}/ws/document/${roomId}/`);
+
+const editor = document.getElementById('editor');
+const saveButton = document.getElementById('save-button');
+const cursorsContainer = document.getElementById('cursors-container');
+
+let isLocalChange = false;
+
+socket.onopen = () => {
+    console.log("WebSocket connection established.");
 };
+
+socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === 'edit' && !isLocalChange) {
+        editor.value = data.content;
+    }
+
+    if (data.type === 'cursor') {
+        updateCursors(data.cursors);
+    }
+};
+
+socket.onclose = () => {
+    console.log("WebSocket connection closed.");
+};
+
+editor.addEventListener('input', () => {
+    isLocalChange = true;
+
+    socket.send(JSON.stringify({
+        type: 'edit',
+        content: editor.value
+    }));
+
+    setTimeout(() => isLocalChange = false, 100);  // Avoid echo loop
+});
+
+editor.addEventListener('keyup', () => {
+    const position = editor.selectionStart;
+    socket.send(JSON.stringify({
+        type: 'cursor',
+        username: username,
+        position: position
+    }));
+});
+
+saveButton.addEventListener('click', () => {
+    socket.send(JSON.stringify({
+        type: 'save',
+        content: editor.value
+    }));
+});
+
+function updateCursors(cursors) {
+    cursorsContainer.innerHTML = '';
+
+    for (const user in cursors) {
+        if (user !== username) {
+            const pos = cursors[user];
+            const marker = document.createElement('div');
+            marker.className = 'cursor-marker';
+            marker.style.top = `${getCursorYPosition(editor, pos)}px`;
+            marker.innerText = user;
+            cursorsContainer.appendChild(marker);
+        }
+    }
+}
+
+function getCursorYPosition(textarea, position) {
+    const dummy = document.createElement('div');
+    dummy.style.visibility = 'hidden';
+    dummy.style.position = 'absolute';
+    dummy.style.whiteSpace = 'pre-wrap';
+    dummy.style.wordWrap = 'break-word';
+    dummy.style.width = `${textarea.offsetWidth}px`;
+    dummy.style.font = window.getComputedStyle(textarea).font;
+    dummy.textContent = textarea.value.substring(0, position);
+
+    document.body.appendChild(dummy);
+    const height = dummy.offsetHeight;
+    document.body.removeChild(dummy);
+
+    const scrollOffset = textarea.scrollTop;
+
+    return height - scrollOffset;
+}

@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login,authenticate
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm,RoomForm
-from .models import Room,RoomContent
+from .models import Room,RoomContent,Document
 from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.models import User
@@ -101,7 +101,11 @@ def room_view(request, room_id):
     return render(request, "document.html", {"room": room})
 def document_view(request, room_id):
     room = get_object_or_404(Room, id=room_id)
-    return render(request, "document.html", {"room": room})
+    room_content, created = RoomContent.objects.get_or_create(room=room)
+    return render(request, 'document.html', {
+        'room': room,
+        'content': room_content.content
+    })
 
 @csrf_exempt
 @login_required
