@@ -107,7 +107,10 @@ function getUserName() {
 socket.onerror = function(error) {
     console.error('WebSocket Error:', error);
 };*/
-const socket = new WebSocket(`ws://${window.location.host}/ws/document/${roomId}/`);
+const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+const socket = new WebSocket(
+    `${wsScheme}://${window.location.host}/ws/document/${roomId}/`
+);
 
 const editor = document.getElementById('editor');
 const saveButton = document.getElementById('save-button');
