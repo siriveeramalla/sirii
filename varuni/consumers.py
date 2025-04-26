@@ -113,7 +113,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
             await self.set_user_status(active=False)
 
             # Optional: force logout
-            await self.force_logout(self.user)
+         #   await self.force_logout(self.user)
 
             await self.send_active_users()
 

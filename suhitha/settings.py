@@ -18,9 +18,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "sirisuhitha@12"
 DEBUG = True
-ALLOWED_HOSTS = ["*","suhitha.onrender.com"]
+ALLOWED_HOSTS = ["*","colab-document.onrender.com"]
 CSRF_TRUSTED_ORIGINS = [
-    'https://suhitha.onrender.com'
+    'https://colab-document.onrender.com'
 ]
 
 INSTALLED_APPS = [
