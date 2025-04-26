@@ -20,7 +20,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import now
 from django.core.cache import cache
 from django.http import HttpResponse
-
+from django.core.mail import send_mail
+from django.conf import settings
+import random
 @csrf_exempt
 def update_editing_status(request, room_id):
     if request.method == "POST" and request.user.is_authenticated:
@@ -45,17 +47,30 @@ def get_editing_users(request, room_id):
 def home(request):
     return render(request,"home.html")
 def register(request):
-    if request.method == "POST":
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            return redirect("dashboard")
+    if request.method == 'POST':
+        username = request.POST['username']
+        email = request.POST['email']
+        password1 = request.POST['password1']
+        password2 = request.POST['password2']
+
+        if password1 == password2:
+            if User.objects.filter(username=username).exists():
+                messages.error(request, 'Username already exists.')
+            elif User.objects.filter(email=email).exists():
+                messages.error(request, 'Email already registered.')
+            else:
+                user = User.objects.create_user(username=username, email=email, password=password1)
+                user.save()
+
+                # Authenticate the user
+                user = authenticate(request, username=username, password=password1)
+                if user is not None:
+                    login(request, user)
+
+                return redirect('dashboard')  # or wherever you want
         else:
-            return render(request, "register.html", {"form": form})
-    else:
-        form = UserCreationForm()
-    return render(request, "register.html", {"form": form})
+            messages.error(request, 'Passwords do not match.')
+    return render(request, 'register.html')
 @login_required
 def dashboard(request):
     rooms = Room.objects.all()  # Get all rooms
@@ -70,7 +85,7 @@ def create_room(request):
             return render(request, "create_room.html", {"error": "Room name already exists!"})
 
         Room.objects.create(name=room_name, password=room_password, admin=request.user)
-        return redirect("home")
+        return redirect("dashboard")
 
     return render(request, "create_room.html")
 @login_required
@@ -178,3 +193,50 @@ def logout_room_users(request, room_id):
         count, _ = UserStatus.objects.filter(room_id=room_id).delete()
         return HttpResponse(f"{count} users logged out from room {room_id}")
     return HttpResponse("Unauthorized", status=401)
+def forgot_password(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            otp = str(random.randint(100000, 999999))
+            request.session['reset_email'] = email
+            request.session['otp'] = otp
+            send_mail(
+                'Password Reset OTP',
+                f'Your OTP for password reset is: {otp}',
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=False,
+            )
+            return redirect('verify_otp')
+        except User.DoesNotExist:
+            messages.error(request, "No account with this email.")
+            return redirect('forgot_password')
+    return render(request, 'forgot_password.html')
+
+def verify_otp(request):
+    if request.method == 'POST':
+        otp_entered = request.POST.get('otp')
+        otp_session = request.session.get('otp')
+        if otp_entered == otp_session:
+            return redirect('reset_password')
+        else:
+            messages.error(request, "Invalid OTP")
+            return redirect('verify_otp')
+    return render(request, 'verify_otp.html')
+
+def reset_password(request):
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+        if password == confirm_password:
+            email = request.session.get('reset_email')
+            user = User.objects.get(email=email)
+            user.set_password(password)
+            user.save()
+            messages.success(request, "Password reset successful. Please login.")
+            return redirect('login')  # Update with your login URL name
+        else:
+            messages.error(request, "Passwords do not match.")
+            return redirect('reset_password')
+    return render(request, 'reset_password.html')

@@ -88,12 +88,20 @@
     <h2>Register</h2>
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        {% if error %}
-            <p class="message">{{ error }}</p>
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password1" placeholder="Password" required>
+        <input type="password" name="password2" placeholder="Confirm Password" required>
+    
+        {% if messages %}
+            {% for message in messages %}
+                <p class="message">{{ message }}</p>
+            {% endfor %}
         {% endif %}
+        
         <button type="submit">Create Account</button>
     </form>
+    
     <a class="link" href="{% url 'login' %}">Already have an account? Login</a>
 </div>
 </body>

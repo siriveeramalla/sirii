@@ -17,5 +17,9 @@ urlpatterns = [
     path('update-editing-status/<int:room_id>/', views.update_editing_status, name='update_editing_status'),
     path('get-editing-users/<int:room_id>/', views.get_editing_users, name='get_editing_users'),
     path('logout-room/<str:room_id>/', views.logout_room_users, name='logout_room_users'),
+    path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('verify-otp/', views.verify_otp, name='verify_otp'),
+    path('reset-password/', views.reset_password, name='reset_password'),
+
 
 ]
