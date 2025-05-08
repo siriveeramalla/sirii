@@ -79,12 +79,15 @@ ROOT_URLCONF = "suhitha.urls"
 
 
 DATABASES = {
-   'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / "db.sqlite3",
-        }
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'colab-db',
+        'USER': 'document_8b0z_user',
+        'PASSWORD': '9bdfKKnCKLVhnRtv7fopQ3Hb09GqvUVp',
+        'HOST': 'dpg-d0684bbuibrs73eanf70-a.render.com',
+        'PORT': '5432',
     }
-
+}
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
