@@ -79,15 +79,10 @@ ROOT_URLCONF = "suhitha.urls"
 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'colab-db',
-        'USER': 'document_8b0z_user',
-        'PASSWORD': '9bdfKKnCKLVhnRtv7fopQ3Hb09GqvUVp',
-        'HOST': 'dpg-d0684bbuibrs73eanf70-a.render.com',
-        'PORT': '5432',
+    'default': dj_database_url.config(
+        default="postgres://document_8b0z_user:9bdfKKnCKLVhnRtv7fopQ3Hb09GqvUVp@dpg-d0684bbuibrs73eanf70-a:5432/colab-db")
     }
-}
+
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
