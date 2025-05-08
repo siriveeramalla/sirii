@@ -81,10 +81,10 @@ ROOT_URLCONF = "suhitha.urls"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'colab-db',
-        'USER': 'document_8b0z_user',
-        'PASSWORD': '9bdfKKnCKLVhnRtv7fopQ3Hb09GqvUVp',
-        'HOST': 'dpg-d0684bbuibrs73eanf70.render.com',
+        'NAME': 'colab-doc',
+        'HOST': 'dpg-d0eatfmuk2gs73fa8jag-a',
+        'PASSWORD': 'URdZcACkh2XYuOTbCNtMO1HPvZ3rmPIW',
+        'USER': 'colab_doc_user',
         'PORT': '5432',
     }
 }
