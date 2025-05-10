@@ -82,12 +82,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'colab-doc',
-        'HOST': 'dpg-d0eatfmuk2gs73fa8jag-a',
-        'PASSWORD': 'URdZcACkh2XYuOTbCNtMO1HPvZ3rmPIW',
         'USER': 'colab_doc_user',
+        'PASSWORD': 'URdZcACkh2XYuOTbCNtMO1HPvZ3rmPIW',
+        'HOST': 'dpg-d0eatfmuk2gs73fa8jag-a.oregon-postgres.render.com',
         'PORT': '5432',
     }
 }
+
 
 
 
