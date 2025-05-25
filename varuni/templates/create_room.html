@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +12,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            background-image:  url("{% static 'images/img4.jpg' %}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
             height: 100vh;
             margin: 0;
         }

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +8,10 @@
     <style>
         body {
             background: #f0f4f8;
+            background-image:  url("{% static 'images/img5.jpg' %}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
             font-family: 'Roboto', sans-serif;
             display: flex;
             justify-content: center;
