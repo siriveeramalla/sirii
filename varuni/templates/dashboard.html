@@ -8,6 +8,10 @@
             font-family: 'Arial', sans-serif;
             margin: 20px;
             background-color: #f4f4f4;
+            background-image:  url("{% static 'images/img2.jpg' %}");
+            background-size: cover;
+            background-repeat: no-repeat;
+           /* background-position: center;*/
         }
         .logout-bar {
             position: absolute;
@@ -34,10 +38,10 @@
 
         <h2>Welcome, {{ user.username }}!</h2>
 
-        <h3>Create a Room</h3>
-        <a href="{% url 'create_room' %}">Create a New Room</a>
+        <h3>Create a Document</h3>
+        <a href="{% url 'create_room' %}">Create a New Document</a>
 
-        <h3>Join a Room</h3>
+        <h3>Join a document</h3>
         <ul>
             {% for room in rooms %}
                 <li>

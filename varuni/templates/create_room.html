@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Create Room</title>
+    <title>Create a document</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -79,15 +79,15 @@
     {% endif %}
 
     <div class="container">
-        <h2>Create a New Room</h2>
+        <h2>Create a New Document</h2>
         {% if error %}
             <div class="error">{{ error }}</div>
         {% endif %}
         <form method="post">
             {% csrf_token %}
-            <input type="text" name="room_name" placeholder="Room Name" required>
-            <input type="password" name="room_password" placeholder="Room Password" required>
-            <button type="submit">Create Room</button>
+            <input type="text" name="room_name" placeholder="Document Name" required>
+            <input type="password" name="room_password" placeholder="Document Password" required>
+            <button type="submit">Create Document</button>
         </form>
     </div>
 </body>
