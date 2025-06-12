@@ -20,6 +20,8 @@ urlpatterns = [
     path('forgot-password/', views.forgot_password, name='forgot_password'),
     path('verify-otp/', views.verify_otp, name='verify_otp'),
     path('reset-password/', views.reset_password, name='reset_password'),
+    path('export/docx/<str:room_id>/', views.export_docx, name='export_docx'),
+    path('export/pdf/<str:room_id>/', views.export_pdf, name='export_pdf'),
 
 
 ]

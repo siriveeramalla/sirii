@@ -23,6 +23,44 @@ from django.http import HttpResponse
 from django.core.mail import send_mail
 from django.conf import settings
 import random
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from django.http import HttpResponse
+from docx import Document
+
+def export_docx(request, room_id):
+    from .models import RoomContent
+    content = RoomContent.objects.get(room_id=room_id).content
+
+    doc = Document()
+    doc.add_heading("Exported Document", 0)
+    for line in content.splitlines():
+        doc.add_paragraph(line)
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = 'attachment; filename=document.docx'
+    doc.save(response)
+    return response
+
+def export_pdf(request, room_id):
+    # Load content from DB
+    from .models import RoomContent
+    content = RoomContent.objects.get(room_id=room_id).content
+
+    # Create PDF
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer)
+    p.drawString(100, 800, "Exported Document")
+    text_object = p.beginText(100, 780)
+    for line in content.splitlines():
+        text_object.textLine(line)
+    p.drawText(text_object)
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+    return HttpResponse(buffer, content_type='application/pdf')
 @csrf_exempt
 def update_editing_status(request, room_id):
     if request.method == "POST" and request.user.is_authenticated:
@@ -109,11 +147,16 @@ def join_room(request, room_id):
             messages.error(request, "Incorrect password. Try again.")
     
     return render(request, "join_room.html", {"room": room})
-
 @login_required
 def room_view(request, room_id):
     room = get_object_or_404(Room, id=room_id)
-    return render(request, "document.html", {"room": room})
+    content, _ = RoomContent.objects.get_or_create(room=room)
+    return render(request, "document.html", {
+        "room": room,
+        "room_id": room_id,  # ✅ Required for export links
+        "content": content.content
+    })
+
 def document_view(request, room_id):
     room = get_object_or_404(Room, id=room_id)
     room_content, created = RoomContent.objects.get_or_create(room=room)

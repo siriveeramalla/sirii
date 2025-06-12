@@ -182,8 +182,41 @@ p {
     padding: 1px 4px;
     border-radius: 3px;
 }
+.export-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.export-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    text-decoration: none;
+    color: white;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+}
+
+.export-btn.pdf {
+    background-color: #007bff;
+}
+
+.export-btn.pdf:hover {
+    background-color: #0056b3;
+}
+
+.export-btn.docx {
+    background-color: #28a745;
+}
+
+.export-btn.docx:hover {
+    background-color: #1e7e34;
+}
+
 
     </style>
+
 </head>
 <body>
     {% if user.is_authenticated %}
@@ -192,6 +225,12 @@ p {
         <a href="{% url 'logout' %}">Logout</a>
     </div>
     {% endif %}
+    {% if room_id %}
+<div class="export-buttons">
+    <a href="{% url 'export_pdf' room_id %}" class="export-btn pdf">Export as PDF</a>
+    <a href="{% url 'export_docx' room_id %}" class="export-btn docx">Export as DOCX</a>
+</div>
+{% endif %}
 
     <div id="editing-users">No one is editing...</div>
     <div id="cursors-container" style="position: absolute; left: 5px; top: 0; z-index: 10;"></div>
@@ -209,7 +248,10 @@ p {
             <button onclick="document.execCommand('undo', false, null)">Undo</button>
             <button onclick="document.execCommand('redo', false, null)">Redo</button>
             <button id="save-btn">Save</button>
+           
         </div>
+        
+
 </div>
 <div id="editor" contenteditable="true" style="min-height: 300px; border: 1px solid #ccc; padding: 10px;">
     {{ content|safe }}
