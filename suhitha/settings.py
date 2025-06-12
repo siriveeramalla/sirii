@@ -81,14 +81,15 @@ ROOT_URLCONF = "suhitha.urls"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'colab-doc',
+        'NAME': 'colab_doc_o6sd',
         'USER': 'colab_doc_user',
         'PASSWORD': 'Xniq8RSdt4JHu0KIUzWYvh55sUXVYpsP',
         'HOST': 'dpg-d1567rm3jp1c73fh2co0-a.oregon-postgres.render.com',
         'PORT': '5432',
         'OPTIONS': {
-            'sslmode': 'require'  # ✅ Required for Render PostgreSQL
+            'sslmode': 'require',
         }
+       
     }
 }
 
