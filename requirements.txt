@@ -31,3 +31,5 @@ typing_extensions==4.13.0
 tzdata==2025.1
 whitenoise==6.9.0
 zope.interface==7.2
+reportlab
+python-docx
