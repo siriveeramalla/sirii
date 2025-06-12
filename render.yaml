@@ -7,4 +7,6 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
+      python manage.py migrate
     startCommand: daphne -b 0.0.0.0 -p 8000 suhitha.asgi:application
+    healthCheckPath: /
