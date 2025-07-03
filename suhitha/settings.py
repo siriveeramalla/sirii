@@ -112,7 +112,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'suhithamareddy2709@gmail.com'
-EMAIL_HOST_PASSWORD = 'jkdb kutg cgcx pyio'  # Or Gmail App password
+EMAIL_HOST_PASSWORD = 'eaez qulf tbca tjkx'  # Or Gmail App password
 
 
 SILENCED_SYSTEM_CHECKS = ["models.W036"]
