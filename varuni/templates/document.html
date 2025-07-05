@@ -678,7 +678,8 @@
         <span class="connection-status connecting"></span>
         <span id="save-status" class="save-status">Connecting...</span>
     </div>
-
+ <center> <div id="editing-users"><b>No one is editing...</b></div>
+</center>
     <div class="container">
         <h1>{{ room.name }}</h1>
         <p>Real-time collaborative document editing</p>
@@ -758,7 +759,7 @@
         </div>
         <div id="cursors-container"></div>
     </div>
-
+      
     <!-- Share Modal -->
     <div id="shareModal" class="modal">
         <div class="modal-content">
@@ -793,6 +794,7 @@
             </button>
         </div>
     </div>
+   
 
     <script>
         // Global variables
@@ -808,7 +810,7 @@
         let maxConnectionAttempts = 5;
         let isLocalChange = false;
         let socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-        let socket;
+        let socket = new WebSocket(`${socketProtocol}://${window.location.host}/ws/document/${roomId}/`);
         let callStartTime;
         let callTimer;
 
@@ -1404,6 +1406,36 @@
         setInterval(() => {
             autoSave();
         }, 30000);
+
+        function updateEditingStatus() {
+            fetch(`/update-editing-status/${roomId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+        }
+
+        function fetchEditingUsers() {
+            fetch(`/get-editing-users/${roomId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    const usersDiv = document.getElementById("editing-users");
+                    if (data.editing.length > 0) {
+                        usersDiv.innerText = "Editing: " + data.editing.join(", ");
+                    } else {
+                        usersDiv.innerText = "No one is editing...";
+                    }
+                });
+        }
+
+        editor.addEventListener("input", updateEditingStatus);
+        setInterval(fetchEditingUsers, 1000);
+        setInterval(updateActiveUsers, 1000);
+
+
+        // Focus editor
+        setTimeout(() => {
+            editor.focus();
+        }, 100);
 
         console.log("Document editor initialized successfully");
     </script>
