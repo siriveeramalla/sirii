@@ -28,6 +28,31 @@ from reportlab.pdfgen import canvas
 from io import BytesIO
 from django.http import HttpResponse
 from docx import Document
+from django.views.decorators.csrf import csrf_exempt
+from django.core.mail import send_mail
+from django.http import JsonResponse
+import json
+
+@csrf_exempt
+def share_document(request, room_id):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        emails = data.get("emails", [])
+        message = data.get("message", "")
+        room_name = data.get("room_name", "")
+        room_url = data.get("room_url", "")
+
+        subject = f"Invitation to collaborate on: {room_name}"
+        full_message = f"{message}\n\nClick to join: {room_url}"
+
+        try:
+            send_mail(subject, full_message, 'your_email@example.com', emails)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
 
 def export_docx(request, room_id):
     from .models import RoomContent

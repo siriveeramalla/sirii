@@ -1,78 +1,10 @@
-'''import json
-from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Room, RoomContent
-from asgiref.sync import async_to_sync
-
-class DocumentConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        self.room_id = self.scope['url_route']['kwargs']['room_id']
-        self.room_group_name = f'document_{self.room_id}'
-
-        # Join room group
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
-
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        # Leave room group
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
-
-    async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        content = text_data_json['content']
-
-        # Broadcast the content to the group (all users in the room)
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'document_update',
-                'content': content
-            }
-        )
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-
-        if data.get('type') == 'save_document':
-            await self.save_document(data['content'])
-        else:
-            content = data['content']
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'document_update',
-                    'content': content
-                }
-            )
-
-    @database_sync_to_async
-    def save_document(self, content):
-        room = Room.objects.get(id=self.room_id)
-        room_content, created = RoomContent.objects.get_or_create(room=room)
-        room_content.content = content
-        room_content.save()
-    # Receive message from room group
-    async def document_update(self, event):
-        content = event['content']
-
-        # Send the document content to WebSocket
-        await self.send(text_data=json.dumps({
-            'content': content
-        }))'''
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.contrib.auth.models import User
 from channels.db import database_sync_to_async
-from django.contrib.sessions.models import Session
-from django.utils import timezone
-from varuni.models import Document, UserStatus,Room
+from .models import Room, RoomContent
 
 active_users = {}
-editing_users = {}
 
 class DocumentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -83,112 +15,115 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        if self.user.is_authenticated:
-            username = self.user.username
+        if self.room_id not in active_users:
+            active_users[self.room_id] = {}
+        active_users[self.room_id][self.user.username] = self.channel_name
 
-            if self.room_id not in active_users:
-                active_users[self.room_id] = set()
-            active_users[self.room_id].add(username)
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_join',
+                'username': self.user.username,
+                'users': list(active_users[self.room_id].keys())
+            }
+        )
 
-            await self.set_user_status(active=True)
-
-            await self.send_active_users()
+        content = await self.get_room_content(self.room_id)
+        await self.send(text_data=json.dumps({
+            'type': 'load',
+            'content': content
+        }))
 
     async def disconnect(self, close_code):
-        if self.user.is_authenticated:
-            username = self.user.username
-
-            # Remove from active_users
-            if self.room_id in active_users and username in active_users[self.room_id]:
-                active_users[self.room_id].remove(username)
-                if not active_users[self.room_id]:
-                    del active_users[self.room_id]
-
-            # Remove from editing_users
-            if self.room_id in editing_users and username in editing_users[self.room_id]:
-                editing_users[self.room_id].remove(username)
-                if not editing_users[self.room_id]:
-                    del editing_users[self.room_id]
-
-            await self.set_user_status(active=False)
-
-            # Optional: force logout
-         #   await self.force_logout(self.user)
-
-            await self.send_active_users()
-
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+        if self.room_id in active_users and self.user.username in active_users[self.room_id]:
+            del active_users[self.room_id][self.user.username]
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'user_leave',
+                    'username': self.user.username,
+                    'users': list(active_users[self.room_id].keys())
+                }
+            )
 
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get('type')
 
-        if message_type == 'send_edit':
-            # Broadcast the edit to others
+        if message_type == 'edit':
+            content = data['content']
+            cursor = data.get('cursor', None)
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                    'type': 'edit_message',
-                    'message': data['message'],
-                    'username': data['username']
+                    'type': 'document_edit',
+                    'username': self.user.username,
+                    'content': content,
+                    'cursor': cursor
                 }
             )
 
-        elif message_type == 'save_document':
-            room_id = self.scope['url_route']['kwargs']['room_id']
+        elif message_type == 'save':
             content = data['content']
-            await self.save_document(room_id, content)
+            await self.save_room_content(self.room_id, content)
+            await self.send(text_data=json.dumps({
+                'type': 'save',
+                'message': 'Document saved successfully.'
+            }))
 
-    async def broadcast_edit(self, event):
-        await self.send(text_data=json.dumps(event['data']))
+        elif message_type in ['offer', 'answer', 'ice-candidate']:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'webrtc_signal',
+                    'username': self.user.username,
+                    'message_type': message_type,
+                    'data': data['data']
+                }
+            )
 
-    async def send_active_users(self):
-        await self.channel_layer.group_send(self.room_group_name, {
-            'type': 'active_users_update',
-            'active_users': list(active_users.get(self.room_id, []))
-        })
+    async def document_edit(self, event):
+        if self.user.username != event['username']:
+            await self.send(text_data=json.dumps({
+                'type': 'edit',
+                'username': event['username'],
+                'content': event['content'],
+                'cursor': event.get('cursor')
+            }))
 
-    async def active_users_update(self, event):
+    async def user_join(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'active_users',
-            'users': event['active_users']
+            'type': 'user_join',
+            'username': event['username'],
+            'users': event['users']
         }))
 
-    async def add_editing_user(self):
-        username = self.user.username
-        if self.room_id not in editing_users:
-            editing_users[self.room_id] = set()
-        editing_users[self.room_id].add(username)
-
-        await self.channel_layer.group_send(self.room_group_name, {
-            'type': 'editing_users_update',
-            'editing_users': list(editing_users[self.room_id])
-        })
-
-    async def editing_users_update(self, event):
+    async def user_leave(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'editing_users',
-            'users': event['editing_users']
+            'type': 'user_leave',
+            'username': event['username'],
+            'users': event['users']
         }))
 
-    @database_sync_to_async
-    def save_document(self, content):
-        room_id = self.scope['url_route']['kwargs']['room_id']
-        try:
-            room = Room.objects.get(id=room_id)
-            room.document = content
-            room.save()
-            print("Document saved successfully.")
-        except Room.DoesNotExist:
-            print("Room not found.")
-
+    async def webrtc_signal(self, event):
+        if self.user.username != event['username']:
+            await self.send(text_data=json.dumps({
+                'type': event['message_type'],
+                'username': event['username'],
+                'data': event['data']
+            }))
 
     @database_sync_to_async
-    def set_user_status(self, active=True):
-        try:
-            status, created = UserStatus.objects.get_or_create(user=self.user)
-            status.is_active = active
-            status.room_id = self.room_id if active else None
-            status.save()
-        except:
-            pass
+    def get_room_content(self, room_id):
+        room = Room.objects.get(id=room_id)
+        content, _ = RoomContent.objects.get_or_create(room=room)
+        return content.content
+
+    @database_sync_to_async
+    def save_room_content(self, room_id, content):
+        room = Room.objects.get(id=room_id)
+        room_content, _ = RoomContent.objects.get_or_create(room=room)
+        room_content.content = content
+        room_content.save()

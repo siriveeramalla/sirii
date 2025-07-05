@@ -688,10 +688,8 @@
             <div class="last-edit-info">
                 Last edited: <span id="last-edit-time">Loading...</span> by <span id="last-edit-user">{{ request.user.username }}</span>
             </div>
-            <button class="video-call-btn" onclick="startVideoCall()">
-                📹 Start Video Call
-            </button>
         </div>
+        
 
         <div class="current-editors">
             <h3>Currently Active:</h3>
@@ -752,6 +750,14 @@
                 <button onclick="document.execCommand('redo', false, null)" title="Redo">↷ Redo</button>
                 <button id="share-btn" class="share-btn" onclick="openShareModal()" title="Share Document">📧 Share</button>
             </div>
+            <div id="video-call-section">
+  <button id="start-call">Start Video Call</button>
+  <div id="video-grid">
+    <video id="local-video" autoplay muted></video>
+  </div>
+</div>
+
+<script src="{% static 'js/webrtc.js' %}"></script>
         </div>
 
         <div id="editor" contenteditable="true">
@@ -780,22 +786,7 @@
             </button>
         </div>
     </div>
-
-    <!-- Video Call Modal -->
-    <div id="videoModal" class="modal video-modal">
-        <div class="modal-content">
-            <span class="close" onclick="endVideoCall()">&times;</span>
-            <div class="video-icon">📹</div>
-            <h2>Video Call Active</h2>
-            <p>You're now in a video call with collaborators</p>
-            <p id="call-duration">Duration: 00:00</p>
-            <button class="btn-primary" onclick="endVideoCall()" style="background: linear-gradient(45deg, #dc3545, #c82333); margin-top: 20px;">
-                📞 End Call
-            </button>
-        </div>
-    </div>
-   
-
+<div> 
     <script>
         // Global variables
         let roomId = "{{ room.id }}";
