@@ -1,6 +1,2441 @@
+
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Document - {{ room.name }}</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .logout-bar {
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+            text-align: right;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logout-bar a {
+            color: #ecf0f1;
+            text-decoration: none;
+            margin-left: 15px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .logout-bar a:hover {
+            background-color: #34495e;
+        }
+
+        .export-buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .export-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            text-decoration: none;
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .export-btn.pdf {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .export-btn.docx {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+        }
+
+        .document-info {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #28a745;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .last-edit-info {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .video-call-btn {
+            background: linear-gradient(45deg, #17a2b8, #138496);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .video-call-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .current-editors {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .current-editors h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .editors-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            min-height: 30px;
+        }
+
+        .editor-badge {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease;
+        }
+
+        .editor-badge:hover {
+            transform: translateY(-1px);
+        }
+
+        .no-users-message {
+            color: #7f8c8d;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .toolbar {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            padding: 5px;
+            border-right: 1px solid #dee2e6;
+            margin-right: 10px;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+            margin-right: 0;
+        }
+
+        .toolbar button, .toolbar select, .toolbar input {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin: 2px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .toolbar button:hover, .toolbar select:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .toolbar select {
+            min-width: 80px;
+        }
+
+        .toolbar input[type="color"] {
+            width: 40px;
+            height: 35px;
+            padding: 2px;
+            border-radius: 6px;
+        }
+
+        .share-btn {
+            background: linear-gradient(45deg, #28a745, #20c997) !important;
+        }
+
+        .format-btn {
+            background: linear-gradient(45deg, #6f42c1, #5a67d8) !important;
+        }
+
+        .insert-btn {
+            background: linear-gradient(45deg, #fd7e14, #e83e8c) !important;
+        }
+
+        #editor {
+            min-height: 500px;
+            border: 3px solid #e9ecef;
+            padding: 25px;
+            margin-top: 20px;
+            border-radius: 10px;
+            background-color: #ffffff;
+            font-size: 16px;
+            line-height: 1.6;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            overflow: auto;
+            z-index: 1;
+        }
+
+        #editor:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        #editor table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        #editor table, #editor th, #editor td {
+            border: 1px solid #ddd;
+        }
+
+        #editor th, #editor td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        #editor th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        #editor hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            margin: 20px 0;
+            border-radius: 1px;
+        }
+
+        #editing-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(44, 62, 80, 0.95);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .connection-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .connection-status.connected {
+            background-color: #27ae60;
+            box-shadow: 0 0 6px rgba(39, 174, 96, 0.6);
+        }
+
+        .connection-status.disconnected {
+            background-color: #e74c3c;
+            box-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+        }
+
+        .connection-status.connecting {
+            background-color: #f39c12;
+            box-shadow: 0 0 6px rgba(243, 156, 18, 0.6);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Enhanced Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border: none;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: slideIn 0.4s ease-out;
+            position: relative;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+        }
+
+        .close:hover {
+            color: #e74c3c;
+            transform: scale(1.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Video Call Modal */
+        .video-modal {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .video-modal .modal-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+        }
+
+        .video-modal .close {
+            color: white;
+        }
+
+        .video-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        /* Enhanced Cursor Styles */
+        .user-cursor {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translateZ(0);
+            will-change: transform;
+        }
+
+        .cursor-line {
+            width: 2px;
+            height: 20px;
+            background-color: #e74c3c;
+            border-radius: 1px;
+            animation: blink 1s infinite;
+            box-shadow: 0 0 6px rgba(231, 76, 60, 0.8);
+            position: relative;
+        }
+
+        .cursor-username {
+            position: absolute;
+            top: -35px;
+            left: -15px;
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 1001;
+        }
+
+        .cursor-username:before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -4px;
+            border: 4px solid transparent;
+            border-top-color: #e74c3c;
+        }
+
+        #cursors-container {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .cursor-marker {
+            position: absolute;
+            color: #e74c3c;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 1000;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+            animation: fadeInCursor 0.3s ease-in;
+        }
+
+        @keyframes fadeInCursor {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        /* Success/Error Messages */
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1002;
+            animation: slideInRight 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .toast.success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .toast.error {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .toolbar {
+                padding: 15px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .toolbar-group {
+                border-right: none;
+                border-bottom: 1px solid #dee2e6;
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+                justify-content: center;
+            }
+
+            .toolbar button, .toolbar select {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+
+            #editor {
+                min-height: 400px;
+                padding: 20px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 25px;
+                margin: 10% auto;
+            }
+
+            #editing-status {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+
+            .document-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <div class="logout-bar">
+        Logged in as <strong>{{ user.username }}</strong>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+    {% endif %}
+    
+    {% if room_id %}
+    <div class="export-buttons">
+        <a href="{% url 'export_pdf' room_id %}" class="export-btn pdf">📄 Export as PDF</a>
+        <a href="{% url 'export_docx' room_id %}" class="export-btn docx">📝 Export as DOCX</a>
+    </div>
+    {% endif %}
+
+    <div id="editing-status">
+        <span class="connection-status connecting"></span>
+        <span id="save-status" class="save-status">Connecting...</span>
+    </div>
+
+    <div class="container">
+        <h1>{{ room.name }}</h1>
+        <p>Real-time collaborative document editing</p>
+
+        <div class="document-info">
+            <div class="last-edit-info">
+                Last edited: <span id="last-edit-time">Loading...</span> by <span id="last-edit-user">{{ request.user.username }}</span>
+            </div>
+            <button class="video-call-btn" onclick="startVideoCall()">
+                📹 Start Video Call
+            </button>
+        </div>
+
+        <div class="current-editors">
+            <h3>Currently Active:</h3>
+            <div id="active-users" class="editors-list">
+                <span class="no-users-message">Loading users...</span>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <!-- Format Group -->
+            <div class="toolbar-group">
+                <button type="button" class="format-btn" onclick="formatText('bold')" title="Bold"><b>B</b></button>
+                <button type="button" class="format-btn" onclick="formatText('italic')" title="Italic"><i>I</i></button>
+                <button type="button" class="format-btn" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+                <button type="button" class="format-btn" onclick="formatText('strikeThrough')" title="Strikethrough"><s>S</s></button>
+            </div>
+
+            <!-- Font Group -->
+            <div class="toolbar-group">
+                <select id="font-size" onchange="changeFontSize(this.value)" title="Font Size">
+                    <option value="12">12px</option>
+                    <option value="14">14px</option>
+                    <option value="16" selected>16px</option>
+                    <option value="18">18px</option>
+                    <option value="20">20px</option>
+                    <option value="24">24px</option>
+                    <option value="28">28px</option>
+                    <option value="32">32px</option>
+                </select>
+                <input type="color" id="text-color" onchange="changeTextColor(this.value)" title="Text Color" value="#000000">
+                <input type="color" id="bg-color" onchange="changeBackgroundColor(this.value)" title="Background Color" value="#ffffff">
+            </div>
+
+            <!-- Alignment Group -->
+            <div class="toolbar-group">
+                <button type="button" onclick="formatText('justifyLeft')" title="Align Left">⬅️</button>
+                <button type="button" onclick="formatText('justifyCenter')" title="Align Center">↔️</button>
+                <button type="button" onclick="formatText('justifyRight')" title="Align Right">➡️</button>
+                <button type="button" onclick="formatText('justifyFull')" title="Justify">↕️</button>
+            </div>
+
+            <!-- List Group -->
+            <div class="toolbar-group">
+                <button type="button" onclick="formatText('insertUnorderedList')" title="Bullet List">• List</button>
+                <button type="button" onclick="formatText('insertOrderedList')" title="Numbered List">1. List</button>
+            </div>
+
+            <!-- Insert Group -->
+            <div class="toolbar-group">
+                <button type="button" class="insert-btn" onclick="insertTable()" title="Insert Table">📋 Table</button>
+                <button type="button" class="insert-btn" onclick="insertHR()" title="Insert Line">➖ Line</button>
+                <button type="button" class="insert-btn" onclick="insertImage()" title="Insert Image">🖼️ Image</button>
+            </div>
+
+            <!-- Action Group -->
+            <div class="toolbar-group">
+                <button onclick="document.execCommand('undo', false, null)" title="Undo">↶ Undo</button>
+                <button onclick="document.execCommand('redo', false, null)" title="Redo">↷ Redo</button>
+                <button id="share-btn" class="share-btn" onclick="openShareModal()" title="Share Document">📧 Share</button>
+            </div>
+        </div>
+
+        <div id="editor" contenteditable="true">
+            {{ content|safe }}
+        </div>
+        <div id="cursors-container"></div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeShareModal()">&times;</span>
+            <h2>📧 Share Document</h2>
+            <p>Invite others to collaborate on this document</p>
+            <div class="form-group">
+                <label for="shareEmails">📮 Email Addresses (comma separated):</label>
+                <input type="email" id="shareEmails" placeholder="user1@example.com, user2@example.com">
+                <small style="color: #6c757d;">Enter multiple emails separated by commas</small>
+            </div>
+            <div class="form-group">
+                <label for="shareMessage">💬 Personal Message:</label>
+                <textarea id="shareMessage" rows="4" placeholder="Add a personal message...">I'd like to collaborate on "{{ room.name }}" with you. Join me for real-time editing!</textarea>
+            </div>
+            <button class="btn-primary" onclick="sendShareInvite()">
+                📤 Send Invitation
+            </button>
+        </div>
+    </div>
+
+    <!-- Video Call Modal -->
+    <div id="videoModal" class="modal video-modal">
+        <div class="modal-content">
+            <span class="close" onclick="endVideoCall()">&times;</span>
+            <div class="video-icon">📹</div>
+            <h2>Video Call Active</h2>
+            <p>You're now in a video call with collaborators</p>
+            <p id="call-duration">Duration: 00:00</p>
+            <button class="btn-primary" onclick="endVideoCall()" style="background: linear-gradient(45deg, #dc3545, #c82333); margin-top: 20px;">
+                📞 End Call
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let roomId = "{{ room.id }}";
+        let username = "{{ request.user.username }}";
+        let editor = document.getElementById("editor");
+        let lastContent = editor.innerHTML;
+        let activeCursors = new Map();
+        let saveTimeout;
+        let lastSavedContent = editor.innerHTML;
+        let isConnected = false;
+        let connectionAttempts = 0;
+        let maxConnectionAttempts = 5;
+        let isLocalChange = false;
+        let socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+        let socket;
+        let callStartTime;
+        let callTimer;
+
+        // Text formatting functions
+        function formatText(command) {
+            document.execCommand(command, false, null);
+            editor.focus();
+            sendUpdate();
+        }
+
+        function changeFontSize(size) {
+            document.execCommand('fontSize', false, '7');
+            const fontElements = document.querySelectorAll('font[size="7"]');
+            fontElements.forEach(element => {
+                element.removeAttribute('size');
+                element.style.fontSize = size + 'px';
+            });
+            editor.focus();
+            sendUpdate();
+        }
+
+        function changeTextColor(color) {
+            document.execCommand('foreColor', false, color);
+            editor.focus();
+            sendUpdate();
+        }
+
+        function changeBackgroundColor(color) {
+            document.execCommand('backColor', false, color);
+            editor.focus();
+            sendUpdate();
+        }
+
+        function insertTable() {
+            const tableHTML = `
+                <table style="border-collapse: collapse; width: 100%; margin: 15px 0;">
+                    <tr>
+                        <th style="border: 1px solid #ddd; padding: 12px; background-color: #f8f9fa;">Header 1</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; background-color: #f8f9fa;">Header 2</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; background-color: #f8f9fa;">Header 3</th>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 12px;">Cell 1</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;">Cell 2</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;">Cell 3</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 12px;">Cell 4</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;">Cell 5</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;">Cell 6</td>
+                    </tr>
+                </table>
+            `;
+            document.execCommand('insertHTML', false, tableHTML);
+            editor.focus();
+            sendUpdate();
+        }
+
+        function insertHR() {
+            const hrHTML = '<hr style="border: none; height: 2px; background: linear-gradient(45deg, #667eea, #764ba2); margin: 20px 0; border-radius: 1px;">';
+            document.execCommand('insertHTML', false, hrHTML);
+            editor.focus();
+            sendUpdate();
+        }
+
+        function insertImage() {
+            const url = prompt('Enter image URL:');
+            if (url) {
+                const imgHTML = `<img src="${url}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Inserted image">`;
+                document.execCommand('insertHTML', false, imgHTML);
+                editor.focus();
+                sendUpdate();
+            }
+        }
+
+        // Video Call Functions
+        function startVideoCall() {
+            document.getElementById('videoModal').style.display = 'block';
+            callStartTime = Date.now();
+            showToast('Video call started! Others will be notified.', 'success');
+            
+            // Start call timer
+            callTimer = setInterval(updateCallDuration, 1000);
+            
+            // Notify other users (through WebSocket)
+            if (isConnected && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'video_call_start',
+                    username: username,
+                    timestamp: Date.now()
+                }));
+            }
+        }
+
+        function updateCallDuration() {
+            if (callStartTime) {
+                const duration = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(duration / 60);
+                const seconds = duration % 60;
+                document.getElementById('call-duration').textContent = 
+                    `Duration: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function endVideoCall() {
+            document.getElementById('videoModal').style.display = 'none';
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+            callStartTime = null;
+            showToast('Video call ended', 'success');
+            
+            // Notify other users
+            if (isConnected && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'video_call_end',
+                    username: username,
+                    timestamp: Date.now()
+                }));
+            }
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+
+        // Connection status update
+        function updateConnectionStatus(status) {
+            const statusElement = document.querySelector('.connection-status');
+            const saveStatus = document.getElementById('save-status');
+            
+            statusElement.className = `connection-status ${status}`;
+            
+            switch(status) {
+                case 'connected':
+                    saveStatus.textContent = 'Connected & Synced';
+                    isConnected = true;
+                    break;
+                case 'connecting':
+                    saveStatus.textContent = 'Connecting...';
+                    isConnected = false;
+                    break;
+                case 'disconnected':
+                    saveStatus.textContent = 'Auto-save mode';
+                    isConnected = false;
+                    break;
+            }
+        }
+
+        // WebSocket connection
+        function connectWebSocket() {
+            console.log("Attempting WebSocket connection...");
+            updateConnectionStatus('connecting');
+            
+            try {
+                const wsUrl = `${socketProtocol}://${window.location.host}/ws/document/${roomId}/`;
+                console.log("Connecting to:", wsUrl);
+                
+                socket = new WebSocket(wsUrl);
+                
+                socket.onopen = () => {
+                    console.log("✅ WebSocket connected");
+                    updateConnectionStatus('connected');
+                    connectionAttempts = 0;
+                    showToast('Connected to real-time collaboration!', 'success');
+                };
+
+                socket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log("Received WebSocket message:", data);
+
+                        // Handle content updates
+                        if (data.type === 'edit' && !isLocalChange && data.content !== lastContent) {
+                            editor.innerHTML = data.content;
+                            lastContent = data.content;
+                            updateLastEditTime();
+                        }
+
+                        // Handle cursor updates
+                        if (data.type === 'cursor') {
+                            updateCursors(data.cursors || {});
+                        }
+
+                        // Handle user presence
+                        if (data.type === "user_joined" || data.type === "user_left") {
+                            updateActiveUsers();
+                        }
+
+                        // Handle video call notifications
+                        if (data.type === 'video_call_start' && data.username !== username) {
+                            showToast(`${data.username} started a video call`, 'success');
+                        }
+
+                        if (data.type === 'video_call_end' && data.username !== username) {
+                            showToast(`${data.username} ended the video call`, 'success');
+                        }
+                    } catch (error) {
+                        console.error("Error parsing WebSocket message:", error);
+                    }
+                };
+
+                socket.onclose = (event) => {
+                    console.log("❌ WebSocket disconnected");
+                    updateConnectionStatus('disconnected');
+                    
+                    if (connectionAttempts < maxConnectionAttempts) {
+                        connectionAttempts++;
+                        console.log(`Reconnecting... (${connectionAttempts}/${maxConnectionAttempts})`);
+                        setTimeout(() => {
+                            updateConnectionStatus('connecting');
+                            connectWebSocket();
+                        }, 2000 * connectionAttempts);
+                    } else {
+                        console.log("Max reconnection attempts reached, switching to auto-save mode");
+                        startAutoSaveMode();
+                        showToast('Connection lost. Working in offline mode.', 'error');
+                    }
+                };
+
+                socket.onerror = (error) => {
+                    console.error("WebSocket error:", error);
+                    updateConnectionStatus('disconnected');
+                };
+
+            } catch (error) {
+                console.error("Failed to create WebSocket:", error);
+                updateConnectionStatus('disconnected');
+                startAutoSaveMode();
+            }
+        }
+
+        // Auto-save mode when WebSocket fails
+        function startAutoSaveMode() {
+            console.log("Starting auto-save mode (WebSocket unavailable)");
+            updateConnectionStatus('disconnected');
+            
+            setInterval(() => {
+                if (!isConnected) {
+                    autoSave();
+                }
+            }, 3000);
+        }
+
+        // Auto-save functionality
+        function autoSave(force = false) {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                const currentContent = editor.innerHTML;
+                if (currentContent !== lastSavedContent || force) {
+                    const saveStatus = document.getElementById('save-status');
+                    const originalText = saveStatus.textContent;
+                    saveStatus.textContent = 'Saving...';
+                    
+                    fetch(`/save-document/${roomId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ content: currentContent })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Save failed');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            lastSavedContent = currentContent;
+                            updateLastEditTime();
+                            if (!isConnected) {
+                                saveStatus.textContent = 'Auto-saved ✓';
+                                setTimeout(() => {
+                                    if (!isConnected) {
+                                        saveStatus.textContent = 'Auto-save mode';
+                                    }
+                                }, 2000);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Auto-save error:', error);
+                        if (!isConnected) {
+                            saveStatus.textContent = 'Save Error ✗';
+                            setTimeout(() => {
+                                saveStatus.textContent = originalText;
+                            }, 3000);
+                        }
+                    });
+                }
+            }, 1500);
+        }
+
+        // Update last edit time
+        function updateLastEditTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('last-edit-time').textContent = timeString;
+            document.getElementById('last-edit-user').textContent = username;
+        }
+
+        // Get cursor position for contentEditable
+        function getTextOffset() {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return 0;
+            
+            const range = selection.getRangeAt(0);
+            const preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(editor);
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+            
+            return preCaretRange.toString().length;
+        }
+
+        // Update cursors display
+        function updateCursors(cursors) {
+            console.log("Updating cursors:", cursors);
+            const cursorsContainer = document.getElementById('cursors-container');
+            cursorsContainer.innerHTML = '';
+
+            for (const user in cursors) {
+                if (user !== username) {
+                    const position = cursors[user];
+                    const yPos = getCursorYPosition(editor, position);
+                    
+                    const marker = document.createElement('div');
+                    marker.className = 'cursor-marker';
+                    marker.style.top = `${yPos}px`;
+                    marker.style.left = '20px';
+                    marker.innerText = user;
+                    cursorsContainer.appendChild(marker);
+                    
+                    console.log(`Added cursor for ${user} at position ${position}, y: ${yPos}`);
+                }
+            }
+        }
+
+        // Calculate Y position for cursor
+        function getCursorYPosition(element, position) {
+            const text = element.textContent || element.innerText || '';
+            const dummy = document.createElement('div');
+            dummy.style.visibility = 'hidden';
+            dummy.style.position = 'absolute';
+            dummy.style.whiteSpace = 'pre-wrap';
+            dummy.style.wordWrap = 'break-word';
+            dummy.style.width = `${element.offsetWidth}px`;
+            dummy.style.font = window.getComputedStyle(element).font;
+            dummy.style.padding = window.getComputedStyle(element).padding;
+            dummy.textContent = text.substring(0, position);
+
+            document.body.appendChild(dummy);
+            const height = dummy.offsetHeight;
+            document.body.removeChild(dummy);
+
+            const scrollOffset = element.scrollTop;
+            return Math.max(0, height - scrollOffset);
+        }
+
+        // Send content and cursor updates
+        function sendUpdate() {
+            const currentContent = editor.innerHTML;
+            const cursorPosition = getTextOffset();
+
+            if (currentContent !== lastContent) {
+                lastContent = currentContent;
+                autoSave();
+            }
+            
+            if (isConnected && socket && socket.readyState === WebSocket.OPEN) {
+                isLocalChange = true;
+                
+                // Send content update
+                socket.send(JSON.stringify({
+                    type: 'edit',
+                    content: currentContent
+                }));
+                
+                // Send cursor update
+                socket.send(JSON.stringify({
+                    type: 'cursor',
+                    username: username,
+                    position: cursorPosition
+                }));
+                
+                setTimeout(() => isLocalChange = false, 100);
+                console.log(`Sent update: content length ${currentContent.length}, cursor at ${cursorPosition}`);
+            }
+        }
+
+        // Active users management
+        function updateActiveUsers() {
+            fetch(`/get-active-users/${roomId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch active users');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const container = document.getElementById("active-users");
+                    container.innerHTML = '';
+                    
+                    if (data.users && data.users.length > 0) {
+                        data.users.forEach(user => {
+                            const span = document.createElement("span");
+                            span.className = "editor-badge";
+                            span.textContent = user;
+                            container.appendChild(span);
+                        });
+                    } else {
+                        const span = document.createElement("span");
+                        span.className = "no-users-message";
+                        span.textContent = "Only you are editing";
+                        container.appendChild(span);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error updating active users:", error);
+                    const container = document.getElementById("active-users");
+                    container.innerHTML = '<span class="no-users-message">Unable to load active users</span>';
+                });
+        }
+
+        // Share Modal Functions
+        function openShareModal() {
+            document.getElementById("shareModal").style.display = "block";
+        }
+
+        function closeShareModal() {
+            document.getElementById("shareModal").style.display = "none";
+        }
+
+        function sendShareInvite() {
+            const emailsInput = document.getElementById("shareEmails");
+            const messageInput = document.getElementById("shareMessage");
+            const emails = emailsInput.value;
+            const message = messageInput.value;
+            
+            if (!emails.trim()) {
+                showToast("Please enter at least one email address", "error");
+                emailsInput.focus();
+                return;
+            }
+            
+            // Validate email format
+            const emailList = emails.split(',').map(email => email.trim());
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const invalidEmails = emailList.filter(email => !emailRegex.test(email));
+            
+            if (invalidEmails.length > 0) {
+                showToast(`Invalid email format: ${invalidEmails.join(', ')}`, "error");
+                return;
+            }
+            
+            const roomUrl = `${window.location.origin}/join-room/${roomId}/`;
+            
+            // Show loading state
+            const sendButton = document.querySelector('#shareModal .btn-primary');
+            const originalText = sendButton.textContent;
+            sendButton.textContent = '📤 Sending...';
+            sendButton.disabled = true;
+            
+            fetch(`/share-document/${roomId}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ 
+                    emails: emailList,
+                    message: message,
+                    room_name: "{{ room.name }}",
+                    room_url: roomUrl
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === "success") {
+                    showToast(`✅ Invitations sent successfully to ${emailList.length} recipient(s)!`, "success");
+                    closeShareModal();
+                    emailsInput.value = "";
+                    messageInput.value = `I'd like to collaborate on "{{ room.name }}" with you. Join me for real-time editing!`;
+                } else {
+                    throw new Error(data.message || "Unknown error occurred");
+                }
+            })
+            .catch(error => {
+                console.error("Share error:", error);
+                showToast(`❌ Failed to send invitations: ${error.message}`, "error");
+            })
+            .finally(() => {
+                // Reset button state
+                sendButton.textContent = originalText;
+                sendButton.disabled = false;
+            });
+        }
+
+        // Event listeners
+        editor.addEventListener('input', sendUpdate);
+        editor.addEventListener('keyup', sendUpdate);
+        editor.addEventListener('mouseup', sendUpdate);
+        editor.addEventListener('click', sendUpdate);
+        editor.addEventListener('paste', () => {
+            setTimeout(sendUpdate, 100);
+        });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const shareModal = document.getElementById("shareModal");
+            const videoModal = document.getElementById("videoModal");
+            
+            if (event.target === shareModal) {
+                closeShareModal();
+            }
+            if (event.target === videoModal) {
+                endVideoCall();
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'b':
+                        e.preventDefault();
+                        formatText('bold');
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        formatText('italic');
+                        break;
+                    case 'u':
+                        e.preventDefault();
+                        formatText('underline');
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        autoSave(true);
+                        showToast('Document saved!', 'success');
+                        break;
+                }
+            }
+        });
+
+        // Initialize everything
+        console.log("Initializing document editor...");
+        
+        // Set initial last edit time
+        updateLastEditTime();
+        
+        // Connect WebSocket
+        connectWebSocket();
+        
+        // Load active users
+        updateActiveUsers();
+        setInterval(updateActiveUsers, 5000);
+        
+        // Clean up old cursors
+        setInterval(() => {
+            const now = Date.now();
+            activeCursors.forEach((cursor, username) => {
+                if (now - cursor.lastUpdate > 15000) {
+                    if (cursor.element && cursor.element.parentNode) {
+                        cursor.element.remove();
+                    }
+                    activeCursors.delete(username);
+                }
+            });
+        }, 5000);
+
+        // Focus editor
+        setTimeout(() => {
+            editor.focus();
+        }, 100);
+
+        // Periodic save
+        setInterval(() => {
+            autoSave();
+        }, 30000);
+
+        console.log("Document editor initialized successfully");
+    </script>
+</body>
+</html>
+
+{% load static %}
+<!--DOCTYPE html>
+<html-- lang="en">
+<head>
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Document - {{ room.name }}</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .logout-bar {
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+            text-align: right;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logout-bar a {
+            color: #ecf0f1;
+            text-decoration: none;
+            margin-left: 15px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .logout-bar a:hover {
+            background-color: #34495e;
+        }
+
+        .export-buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .export-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            text-decoration: none;
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .export-btn.pdf {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .export-btn.docx {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+        }
+
+        .user-badge-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .user-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 8px 16px;
+            margin: 0 5px 5px 0;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toolbar {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .toolbar button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .toolbar button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .share-btn {
+            background: linear-gradient(45deg, #28a745, #20c997) !important;
+        }
+
+        #editor {
+            min-height: 400px;
+            border: 2px solid #e9ecef;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            background-color: #ffffff;
+            font-size: 16px;
+            line-height: 1.6;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            transition: border-color 0.3s ease;
+            overflow: auto;
+            z-index: 1;
+        }
+
+        #editor:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #editing-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(44, 62, 80, 0.95);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .save-status {
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .save-status.saving {
+            color: #f39c12;
+        }
+
+        .save-status.saved {
+            color: #27ae60;
+        }
+
+        .save-status.error {
+            color: #e74c3c;
+        }
+
+        /* Enhanced cursor styles */
+        .user-cursor {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translateZ(0);
+            will-change: transform;
+        }
+
+        .cursor-line {
+            width: 2px;
+            height: 20px;
+            background-color: #e74c3c;
+            border-radius: 1px;
+            animation: blink 1s infinite;
+            box-shadow: 0 0 6px rgba(231, 76, 60, 0.8);
+            position: relative;
+        }
+
+        .cursor-username {
+            position: absolute;
+            top: -32px;
+            left: -10px;
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 1001;
+        }
+
+        .cursor-username:before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -4px;
+            border: 4px solid transparent;
+            border-top-color: #e74c3c;
+        }
+
+        /* Cursors container */
+        #cursors-container {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .cursor-marker {
+            position: absolute;
+            color: #e74c3c;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 1000;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+
+        /* Current user cursor */
+        .current-user-cursor {
+            position: absolute;
+            pointer-events: none;
+            z-index: 999;
+            width: 2px;
+            height: 20px;
+            background-color: #667eea;
+            border-radius: 1px;
+            animation: blink 1s infinite;
+            box-shadow: 0 0 6px rgba(102, 126, 234, 0.8);
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 8% auto;
+            padding: 30px;
+            border: none;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #e74c3c;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Improved active users styling */
+        .current-editors {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .current-editors h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .editors-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            min-height: 30px;
+        }
+
+        .editor-badge {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease;
+        }
+
+        .editor-badge:hover {
+            transform: translateY(-1px);
+        }
+
+        .no-users-message {
+            color: #7f8c8d;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        /* Connection status indicator */
+        .connection-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .connection-status.connected {
+            background-color: #27ae60;
+            box-shadow: 0 0 6px rgba(39, 174, 96, 0.6);
+        }
+
+        .connection-status.disconnected {
+            background-color: #e74c3c;
+            box-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+        }
+
+        .connection-status.connecting {
+            background-color: #f39c12;
+            box-shadow: 0 0 6px rgba(243, 156, 18, 0.6);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .toolbar button {
+                padding: 8px 12px;
+                font-size: 13px;
+                margin: 3px;
+            }
+
+            #editor {
+                min-height: 300px;
+                padding: 15px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            #editing-status {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <div class="logout-bar">
+        Logged in as <strong>{{ user.username }}</strong>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+    {% endif %}
+    
+    {% if room_id %}
+    <div class="export-buttons">
+        <a href="{% url 'export_pdf' room_id %}" class="export-btn pdf">📄 Export as PDF</a>
+        <a href="{% url 'export_docx' room_id %}" class="export-btn docx">📝 Export as DOCX</a>
+    </div>
+    {% endif %}
+
+    <div id="editing-status">
+        <span class="connection-status connecting"></span>
+        <span id="save-status" class="save-status">Connecting...</span>
+    </div>
+
+    <div class="container">
+        <h1>{{ room.name }}</h1>
+        <p>Start collaborating on this document in real-time</p>
+         <div id="editing-users">No one is editing...</div>
+
+
+        <div class="current-editors">
+            <h3>Currently Active:</h3>
+            <div id="active-users" class="editors-list">
+                <span class="no-users-message">Loading users...</span>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <button type="button" onclick="formatText('bold')" title="Bold"><b>B</b></button>
+            <button type="button" onclick="formatText('italic')" title="Italic"><i>I</i></button>
+            <button type="button" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+            <button onclick="document.execCommand('undo', false, null)" title="Undo">↶ Undo</button>
+            <button onclick="document.execCommand('redo', false, null)" title="Redo">↷ Redo</button>
+            <button id="share-btn" class="share-btn" onclick="openShareModal()" title="Share Document">📧 Share</button>
+        </div>
+
+        <div id="editor" contenteditable="true">
+            {{ content|safe }}
+        </div>
+        <div id="cursors-container"></div>
+    </div>
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeShareModal()">&times;</span>
+            <h2>Share Document</h2>
+            <div class="form-group">
+                <label for="shareEmails">Email Addresses (comma separated):</label>
+                <input type="text" id="shareEmails" placeholder="user1@example.com, user2@example.com">
+            </div>
+            <div class="form-group">
+                <label for="shareMessage">Personal Message:</label>
+                <textarea id="shareMessage" placeholder="Add a personal message...">I'd like to collaborate on "{{ room.name }}" with you. Join me for real-time editing!</textarea>
+            </div>
+            <button class="btn-primary" onclick="sendShareInvite()">Send Invitation</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let roomId = "{{ room.id }}";
+        let username = "{{ request.user.username }}";
+        let editor = document.getElementById("editor");
+        let lastContent = editor.innerHTML;
+        let activeCursors = new Map();
+        let saveTimeout;
+        let lastSavedContent = editor.innerHTML;
+        let isConnected = false;
+        let connectionAttempts = 0;
+        let maxConnectionAttempts = 5;
+        let isLocalChange = false;
+        let socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+        let socket = new WebSocket(`${socketProtocol}://${window.location.host}/ws/document/${roomId}/`);
+        // WebSocket setup with aligned message format
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const cursorsContainer = document.getElementById('cursors-container');
+        const saveButton = document.getElementById('save-button');
+
+        // Text formatting functions
+        function formatText(command) {
+            document.execCommand(command, false, null);
+            editor.focus();
+            sendUpdate();
+        }
+
+        // Connection status update
+        function updateConnectionStatus(status) {
+            const statusElement = document.querySelector('.connection-status');
+            const saveStatus = document.getElementById('save-status');
+            
+            statusElement.className = `connection-status ${status}`;
+            
+            switch(status) {
+                case 'connected':
+                    saveStatus.textContent = 'Connected';
+                    isConnected = true;
+                    break;
+                case 'connecting':
+                    saveStatus.textContent = 'Connecting...';
+                    isConnected = false;
+                    break;
+                case 'disconnected':
+                    saveStatus.textContent = 'Auto-save mode';
+                    isConnected = false;
+                    break;
+            }
+        }
+
+        // WebSocket connection
+        function connectWebSocket() {
+            console.log("Attempting WebSocket connection...");
+            updateConnectionStatus('connecting');
+            
+            try {
+                const wsUrl = `${wsScheme}://${window.location.host}/ws/document/${roomId}/`;
+                console.log("Connecting to:", wsUrl);
+                
+                socket = new WebSocket(wsUrl);
+                
+                socket.onopen = () => {
+                    console.log("✅ WebSocket connected");
+                    updateConnectionStatus('connected');
+                    connectionAttempts = 0;
+                };
+
+                socket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log("Received WebSocket message:", data);
+
+                        // Handle content updates
+                        if (data.type === 'edit' && !isLocalChange && data.content !== lastContent) {
+                            editor.innerHTML = data.content;
+                            lastContent = data.content;
+                        }
+
+                        // Handle cursor updates
+                        if (data.type === 'cursor') {
+                            updateCursors(data.cursors || {});
+                        }
+
+                        // Handle user presence
+                        if (data.type === "user_joined" || data.type === "user_left") {
+                            updateActiveUsers();
+                        }
+                    } catch (error) {
+                        console.error("Error parsing WebSocket message:", error);
+                    }
+                };
+
+                socket.onclose = (event) => {
+                    console.log("❌ WebSocket disconnected");
+                    updateConnectionStatus('disconnected');
+                    
+                    if (connectionAttempts < maxConnectionAttempts) {
+                        connectionAttempts++;
+                        console.log(`Reconnecting... (${connectionAttempts}/${maxConnectionAttempts})`);
+                        setTimeout(() => {
+                            updateConnectionStatus('connecting');
+                            connectWebSocket();
+                        }, 2000 * connectionAttempts);
+                    } else {
+                        console.log("Max reconnection attempts reached, switching to auto-save mode");
+                        startAutoSaveMode();
+                    }
+                };
+
+                socket.onerror = (error) => {
+                    console.error("WebSocket error:", error);
+                    updateConnectionStatus('disconnected');
+                };
+
+            } catch (error) {
+                console.error("Failed to create WebSocket:", error);
+                updateConnectionStatus('disconnected');
+                startAutoSaveMode();
+            }
+        }
+
+        // Auto-save mode when WebSocket fails
+        function startAutoSaveMode() {
+            console.log("Starting auto-save mode (WebSocket unavailable)");
+            updateConnectionStatus('disconnected');
+            
+            setInterval(() => {
+                if (!isConnected) {
+                    autoSave();
+                }
+            }, 3000);
+        }
+
+        // Auto-save functionality
+        function autoSave(force = false) {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                const currentContent = editor.innerHTML;
+                if (currentContent !== lastSavedContent || force) {
+                    const saveStatus = document.getElementById('save-status');
+                    const originalText = saveStatus.textContent;
+                    saveStatus.textContent = 'Saving...';
+                    
+                    fetch(`/save-document/${roomId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ content: currentContent })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Save failed');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            lastSavedContent = currentContent;
+                            if (!isConnected) {
+                                saveStatus.textContent = 'Auto-saved';
+                                setTimeout(() => {
+                                    if (!isConnected) {
+                                        saveStatus.textContent = 'Auto-save mode';
+                                    }
+                                }, 2000);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Auto-save error:', error);
+                        if (!isConnected) {
+                            saveStatus.textContent = 'Save Error';
+                            setTimeout(() => {
+                                saveStatus.textContent = originalText;
+                            }, 3000);
+                        }
+                    });
+                }
+            }, 1500);
+        }
+
+        // Get cursor position for contentEditable
+        function getCaretPosition() {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return null;
+
+            const range = selection.getRangeAt(0);
+            const span = document.createElement('span');
+            span.appendChild(document.createTextNode('\u200b'));
+            range.insertNode(span);
+            
+            const rect = span.getBoundingClientRect();
+            const editorRect = editor.getBoundingClientRect();
+            
+            const position = {
+                x: rect.left - editorRect.left + editor.scrollLeft,
+                y: rect.top - editorRect.top + editor.scrollTop,
+                offset: range.startOffset
+            };
+            
+            span.remove();
+            return position;
+        }
+
+        // Convert contentEditable position to character offset
+        function getTextOffset() {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return 0;
+            
+            const range = selection.getRangeAt(0);
+            const preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(editor);
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+            
+            return preCaretRange.toString().length;
+        }
+
+        // Update cursors display
+        function updateCursors(cursors) {
+            console.log("Updating cursors:", cursors);
+            cursorsContainer.innerHTML = '';
+
+            for (const user in cursors) {
+                if (user !== username) {
+                    const position = cursors[user];
+                    const yPos = getCursorYPosition(editor, position);
+                    
+                    const marker = document.createElement('div');
+                    marker.className = 'cursor-marker';
+                    marker.style.top = `${yPos}px`;
+                    marker.style.left = '20px';
+                    marker.innerText = user;
+                    cursorsContainer.appendChild(marker);
+                    
+                    console.log(`Added cursor for ${user} at position ${position}, y: ${yPos}`);
+                }
+            }
+        }
+
+        // Calculate Y position for cursor
+        function getCursorYPosition(element, position) {
+            const text = element.textContent || element.innerText || '';
+            const dummy = document.createElement('div');
+            dummy.style.visibility = 'hidden';
+            dummy.style.position = 'absolute';
+            dummy.style.whiteSpace = 'pre-wrap';
+            dummy.style.wordWrap = 'break-word';
+            dummy.style.width = `${element.offsetWidth}px`;
+            dummy.style.font = window.getComputedStyle(element).font;
+            dummy.style.padding = window.getComputedStyle(element).padding;
+            dummy.textContent = text.substring(0, position);
+
+            document.body.appendChild(dummy);
+            const height = dummy.offsetHeight;
+            document.body.removeChild(dummy);
+
+            const scrollOffset = element.scrollTop;
+            return Math.max(0, height - scrollOffset);
+        }
+
+        // Send content and cursor updates
+        function sendUpdate() {
+            const currentContent = editor.innerHTML;
+            const cursorPosition = getTextOffset();
+
+            if (currentContent !== lastContent) {
+                lastContent = currentContent;
+                autoSave();
+            }
+            
+            if (isConnected && socket && socket.readyState === WebSocket.OPEN) {
+                isLocalChange = true;
+                
+                // Send content update
+                socket.send(JSON.stringify({
+                    type: 'edit',
+                    content: currentContent
+                }));
+                
+                // Send cursor update
+                socket.send(JSON.stringify({
+                    type: 'cursor',
+                    username: username,
+                    position: cursorPosition
+                }));
+                
+                setTimeout(() => isLocalChange = false, 100);
+                console.log(`Sent update: content length ${currentContent.length}, cursor at ${cursorPosition}`);
+            }
+        }
+
+        // Active users management
+        function updateActiveUsers() {
+            fetch(`/get-active-users/${roomId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch active users');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const container = document.getElementById("active-users");
+                    container.innerHTML = '';
+                    
+                    if (data.users && data.users.length > 0) {
+                        data.users.forEach(user => {
+                            const span = document.createElement("span");
+                            span.className = "editor-badge";
+                            span.textContent = user;
+                            container.appendChild(span);
+                        });
+                    } else {
+                        const span = document.createElement("span");
+                        span.className = "no-users-message";
+                        span.textContent = "Only you are editing";
+                        container.appendChild(span);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error updating active users:", error);
+                    const container = document.getElementById("active-users");
+                    container.innerHTML = '<span class="no-users-message">Unable to load active users</span>';
+                });
+        }
+
+        // Share Modal Functions
+        function openShareModal() {
+            document.getElementById("shareModal").style.display = "block";
+        }
+
+        function closeShareModal() {
+            document.getElementById("shareModal").style.display = "none";
+        }
+
+        function sendShareInvite() {
+            const emails = document.getElementById("shareEmails").value;
+            const message = document.getElementById("shareMessage").value;
+            
+            if (!emails.trim()) {
+                alert("Please enter at least one email address");
+                return;
+            }
+            
+            const roomUrl = `${window.location.origin}/join-room/${roomId}/`;
+            
+            fetch(`/share-document/${roomId}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ 
+                    emails: emails.split(',').map(email => email.trim()),
+                    message: message,
+                    room_name: "{{ room.name }}",
+                    room_url: roomUrl
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert("✅ Invitations sent successfully!");
+                    closeShareModal();
+                    document.getElementById("shareEmails").value = "";
+                } else {
+                    alert("❌ Failed to send invitations: " + (data.message || "Unknown error"));
+                }
+            })
+            .catch(error => {
+                console.error("Share error:", error);
+                alert("❌ An error occurred while sending invitations.");
+            });
+        }
+
+        // Event listeners
+        editor.addEventListener('input', sendUpdate);
+        editor.addEventListener('keyup', sendUpdate);
+        editor.addEventListener('mouseup', sendUpdate);
+        editor.addEventListener('click', sendUpdate);
+        editor.addEventListener('paste', () => {
+            setTimeout(sendUpdate, 100);
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById("shareModal");
+            if (event.target === modal) {
+                closeShareModal();
+            }
+        }
+            function updateActiveUsers() {
+            fetch(`/get-active-users/${roomId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById("active-users");
+                    container.innerHTML = '';
+                    data.users.forEach(user => {
+                        const span = document.createElement("span");
+                        span.className = "user-badge";
+                        span.textContent = user;
+                        container.appendChild(span);
+                    });
+                });
+        }
+
+        function updateEditingStatus() {
+            fetch(`/update-editing-status/${roomId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+        }
+
+        function fetchEditingUsers() {
+            fetch(`/get-editing-users/${roomId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    const usersDiv = document.getElementById("editing-users");
+                    if (data.editing.length > 0) {
+                        usersDiv.innerText = "Editing: " + data.editing.join(", ");
+                    } else {
+                        usersDiv.innerText = "No one is editing...";
+                    }
+                });
+        }
+
+        editor.addEventListener("input", updateEditingStatus);
+        setInterval(fetchEditingUsers, 5000);
+        setInterval(updateActiveUsers, 5000);
+
+        // Initialize everything
+        console.log("Initializing document editor...");
+        window.username = username;
+        
+        // Connect WebSocket
+        connectWebSocket();
+        
+        // Load active users
+        updateActiveUsers();
+        setInterval(updateActiveUsers, 5000);
+        
+        // Clean up old cursors
+        setInterval(() => {
+            const now = Date.now();
+            activeCursors.forEach((cursor, username) => {
+                if (now - cursor.lastUpdate > 15000) {
+                    cursor.element.remove();
+                    activeCursors.delete(username);
+                }
+            });
+        }, 5000);
+
+        // Focus editor
+        setTimeout(() => {
+            editor.focus();
+        }, 100);
+
+        console.log("Document editor initialized successfully");
+         
+
+    </script>
+</body>
+</html-->
+{% load static %}
+<!--DOCTYPE html>
+<html-- lang="en">
 <head>
    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collaborative Document - {{ room.name }}</title>
@@ -316,8 +2751,8 @@ p {
                 let rect = range.getBoundingClientRect();
                 let editorRect = editor.getBoundingClientRect();
 
-                let cursorId = `cursor-${username}`;
-                let labelId = `label-${username}`;
+                let cursorId = cursor-`${username}`;
+                let labelId = label-`${username}`;
 
                 removeCursor(username);
 
@@ -342,8 +2777,8 @@ p {
         }
 
         function removeCursor(username) {
-            let oldCursor = document.getElementById(`cursor-${username}`);
-            let oldLabel = document.getElementById(`label-${username}`);
+            let oldCursor = document.getElementById(cursor-`${username}`);
+            let oldLabel = document.getElementById(label-`${username}`);
             if (oldCursor) oldCursor.remove();
             if (oldLabel) oldLabel.remove();
         }
@@ -488,4 +2923,4 @@ p {
         setInterval(updateActiveUsers, 5000);
     </script>
 </body>
-</html>
+</html-->
