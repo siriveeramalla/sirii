@@ -750,15 +750,14 @@
                 <button onclick="document.execCommand('redo', false, null)" title="Redo">↷ Redo</button>
                 <button id="share-btn" class="share-btn" onclick="openShareModal()" title="Share Document">📧 Share</button>
             </div>
-            <div id="video-call-section">
-  <button id="start-call">Start Video Call</button>
-  <div id="video-grid">
-    <video id="local-video" autoplay muted></video>
-  </div>
-</div>
+             <h2>Welcome, {{ user.username }}</h2>
 
-<script src="{% static 'js/webrtc.js' %}"></script>
-        </div>
+    <button id="start-video-call">Start Video Call</button>
+
+    <div id="video-grid" class="video-grid"></div>
+
+    <script src="{% static 'js/webrtc.js' %}"></script>
+</div>
 
         <div id="editor" contenteditable="true">
             {{ content|safe }}
@@ -876,55 +875,6 @@
                 sendUpdate();
             }
         }
-
-        // Video Call Functions
-        function startVideoCall() {
-            document.getElementById('videoModal').style.display = 'block';
-            callStartTime = Date.now();
-            showToast('Video call started! Others will be notified.', 'success');
-            
-            // Start call timer
-            callTimer = setInterval(updateCallDuration, 1000);
-            
-            // Notify other users (through WebSocket)
-            if (isConnected && socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                    type: 'video_call_start',
-                    username: username,
-                    timestamp: Date.now()
-                }));
-            }
-        }
-
-        function updateCallDuration() {
-            if (callStartTime) {
-                const duration = Math.floor((Date.now() - callStartTime) / 1000);
-                const minutes = Math.floor(duration / 60);
-                const seconds = duration % 60;
-                document.getElementById('call-duration').textContent = 
-                    `Duration: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }
-        }
-
-        function endVideoCall() {
-            document.getElementById('videoModal').style.display = 'none';
-            if (callTimer) {
-                clearInterval(callTimer);
-                callTimer = null;
-            }
-            callStartTime = null;
-            showToast('Video call ended', 'success');
-            
-            // Notify other users
-            if (isConnected && socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                    type: 'video_call_end',
-                    username: username,
-                    timestamp: Date.now()
-                }));
-            }
-        }
-
         // Toast notification function
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');

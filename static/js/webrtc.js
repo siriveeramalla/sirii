@@ -1,29 +1,46 @@
 let localStream;
 let peerConnections = {};
+const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
 const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 const videoGrid = document.getElementById("video-grid");
-
 const localVideo = document.createElement("video");
 localVideo.muted = true;
 videoGrid.appendChild(localVideo);
+const callSocket = new WebSocket(
+    `${wsScheme}://${window.location.host}/ws/call/${roomId}/`
+);
 
-document.getElementById("start-video-call").addEventListener("click", startVideoCall);
+const startButton = document.getElementById("start-video-call");
+
+if (startButton) {
+    startButton.addEventListener("click", startVideoCall);
+} else {
+    console.error("Start video button not found");
+}
 
 function startVideoCall() {
+    const callSocket = new WebSocket(
+    `${wsScheme}://${window.location.host}/ws/call/${roomId}/`
+);
+
+
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
             localStream = stream;
             localVideo.srcObject = stream;
             localVideo.play();
 
-            socket.send(JSON.stringify({ type: "join-call", username: username }));
+            callSocket.send(JSON.stringify({
+                type: "join-call",
+                username: username
+            }));
         })
         .catch(error => {
             console.error("Error accessing media devices.", error);
         });
 }
 
-socket.onmessage = (event) => {
+callSocket.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
     if (data.type === "join-call" && data.username !== username) {
@@ -43,7 +60,7 @@ function createOffer(remoteUsername) {
 
     peer.onicecandidate = event => {
         if (event.candidate) {
-            socket.send(JSON.stringify({
+            callSocket.send(JSON.stringify({
                 type: "ice-candidate",
                 candidate: event.candidate,
                 username: username,
@@ -62,7 +79,7 @@ function createOffer(remoteUsername) {
     peer.createOffer()
         .then(offer => {
             peer.setLocalDescription(offer);
-            socket.send(JSON.stringify({
+            callSocket.send(JSON.stringify({
                 type: "offer",
                 offer: offer,
                 username: username,
@@ -79,7 +96,7 @@ function handleOffer(offer, remoteUsername) {
 
     peer.onicecandidate = event => {
         if (event.candidate) {
-            socket.send(JSON.stringify({
+            callSocket.send(JSON.stringify({
                 type: "ice-candidate",
                 candidate: event.candidate,
                 username: username,
@@ -99,7 +116,7 @@ function handleOffer(offer, remoteUsername) {
         .then(() => peer.createAnswer())
         .then(answer => {
             peer.setLocalDescription(answer);
-            socket.send(JSON.stringify({
+            callSocket.send(JSON.stringify({
                 type: "answer",
                 answer: answer,
                 username: username,
@@ -112,10 +129,14 @@ function handleOffer(offer, remoteUsername) {
 
 function handleAnswer(answer, remoteUsername) {
     const peer = peerConnections[remoteUsername];
-    peer.setRemoteDescription(new RTCSessionDescription(answer));
+    if (peer) {
+        peer.setRemoteDescription(new RTCSessionDescription(answer));
+    }
 }
 
 function handleNewICECandidate(candidate, remoteUsername) {
     const peer = peerConnections[remoteUsername];
-    peer.addIceCandidate(new RTCIceCandidate(candidate));
+    if (peer) {
+        peer.addIceCandidate(new RTCIceCandidate(candidate));
+    }
 }

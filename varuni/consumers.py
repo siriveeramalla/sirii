@@ -4,30 +4,34 @@ from django.contrib.auth.models import User
 from channels.db import database_sync_to_async
 from .models import Room, RoomContent
 
-active_users = {}
+active_users = {}  # room_id -> { username: channel_name }
 
 class DocumentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'document_{self.room_id}'
         self.user = self.scope['user']
+        self.username = self.user.username
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
+        # Track user in active_users
         if self.room_id not in active_users:
             active_users[self.room_id] = {}
-        active_users[self.room_id][self.user.username] = self.channel_name
+        active_users[self.room_id][self.username] = self.channel_name
 
+        # Notify others
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'user_join',
-                'username': self.user.username,
+                'username': self.username,
                 'users': list(active_users[self.room_id].keys())
             }
         )
 
+        # Send existing document content
         content = await self.get_room_content(self.room_id)
         await self.send(text_data=json.dumps({
             'type': 'load',
@@ -37,84 +41,104 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
-        if self.room_id in active_users and self.user.username in active_users[self.room_id]:
-            del active_users[self.room_id][self.user.username]
+        if self.room_id in active_users and self.username in active_users[self.room_id]:
+            del active_users[self.room_id][self.username]
+
+            # Notify others
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     'type': 'user_leave',
-                    'username': self.user.username,
+                    'username': self.username,
                     'users': list(active_users[self.room_id].keys())
                 }
             )
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        message_type = data.get('type')
+        msg_type = data.get("type")
 
-        if message_type == 'edit':
-            content = data['content']
-            cursor = data.get('cursor', None)
+        if msg_type == "edit":
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                    'type': 'document_edit',
-                    'username': self.user.username,
-                    'content': content,
-                    'cursor': cursor
+                    "type": "document_edit",
+                    "username": self.username,
+                    "content": data["content"],
+                    "cursor": data.get("cursor")
                 }
             )
 
-        elif message_type == 'save':
-            content = data['content']
-            await self.save_room_content(self.room_id, content)
+        elif msg_type == "save":
+            await self.save_room_content(self.room_id, data["content"])
             await self.send(text_data=json.dumps({
-                'type': 'save',
-                'message': 'Document saved successfully.'
+                "type": "save",
+                "message": "Document saved successfully."
             }))
 
-        elif message_type in ['offer', 'answer', 'ice-candidate']:
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'webrtc_signal',
-                    'username': self.user.username,
-                    'message_type': message_type,
-                    'data': data['data']
-                }
-            )
+        elif msg_type == "join-call":
+            # Notify all others that this user joined the call
+            for user, channel in active_users[self.room_id].items():
+                if user != self.username:
+                    await self.channel_layer.send(channel, {
+                        "type": "call_joined",
+                        "username": self.username
+                    })
+
+        elif msg_type in ["offer", "answer", "ice-candidate"]:
+            target = data.get("target")
+            if not target:
+                return
+            target_channel = active_users[self.room_id].get(target)
+            if target_channel:
+                await self.channel_layer.send(target_channel, {
+                    "type": "webrtc_signal",
+                    "message_type": msg_type,
+                    "username": self.username,
+                    "payload": data.get("offer") or data.get("answer") or data.get("candidate")
+                })
+
+    # Custom message types
 
     async def document_edit(self, event):
-        if self.user.username != event['username']:
+        if event["username"] != self.username:
             await self.send(text_data=json.dumps({
-                'type': 'edit',
-                'username': event['username'],
-                'content': event['content'],
-                'cursor': event.get('cursor')
+                "type": "edit",
+                "username": event["username"],
+                "content": event["content"],
+                "cursor": event.get("cursor")
             }))
 
     async def user_join(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'user_join',
-            'username': event['username'],
-            'users': event['users']
+            "type": "user_join",
+            "username": event["username"],
+            "users": event["users"]
         }))
 
     async def user_leave(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'user_leave',
-            'username': event['username'],
-            'users': event['users']
+            "type": "user_leave",
+            "username": event["username"],
+            "users": event["users"]
+        }))
+
+    async def call_joined(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "join-call",
+            "username": event["username"]
         }))
 
     async def webrtc_signal(self, event):
-        if self.user.username != event['username']:
-            await self.send(text_data=json.dumps({
-                'type': event['message_type'],
-                'username': event['username'],
-                'data': event['data']
-            }))
+        await self.send(text_data=json.dumps({
+            "type": event["message_type"],
+            "username": event["username"],
+            **({"offer": event["payload"]} if event["message_type"] == "offer" else {}),
+            **({"answer": event["payload"]} if event["message_type"] == "answer" else {}),
+            **({"candidate": event["payload"]} if event["message_type"] == "ice-candidate" else {}),
+        }))
 
+    # DB helpers
     @database_sync_to_async
     def get_room_content(self, room_id):
         room = Room.objects.get(id=room_id)

@@ -3,6 +3,7 @@ const socket = new WebSocket(
     `${wsScheme}://${window.location.host}/ws/document/${roomId}/`
 );
 
+
 const editor = document.getElementById('editor');
 const saveButton = document.getElementById('save-button');
 const cursorsContainer = document.getElementById('cursors-container');
