@@ -28,6 +28,8 @@ urlpatterns = [
     path('export/docx/<str:room_id>/', views.export_docx, name='export_docx'),
     path('export/pdf/<str:room_id>/', views.export_pdf, name='export_pdf'),
     path('share-document/<int:room_id>/', views.share_document, name='share_document'),
+    path('invite/<int:room_id>/', views.invite_user, name='invite_user'),
+    path('join/<int:room_id>/', views.join_document, name='join_document'),
 
 
 

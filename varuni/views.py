@@ -32,7 +32,49 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from django.http import JsonResponse
 import json
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Room, RoomContent
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib.auth import login
+from django.urls import reverse
 
+@login_required
+def document_view(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    content, created = RoomContent.objects.get_or_create(room=room)
+    return render(request, 'document.html', {
+        'room_id': room.id,
+        'room_name': room.name,
+        'content': content.content,
+        'user': request.user,
+    })
+
+@login_required
+def invite_user(request, room_id):
+    if request.method == 'POST':
+        email = request.POST['email']
+        room = get_object_or_404(Room, id=room_id)
+        invite_link = request.build_absolute_uri(reverse('join_document', args=[room.id]))
+        
+        send_mail(
+            subject='Collaborative Document Invite',
+            message=f"You've been invited to join the room '{room.name}'. Click here: {invite_link}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+        )
+        return redirect('document', room_id=room.id)
+
+    return redirect('document', room_id=room_id)
+
+def join_document(request, room_id):
+    if not request.user.is_authenticated:
+        request.session['pending_room'] = room_id
+        return redirect('login')
+
+    return redirect('document', room_id=room_id)
 @csrf_exempt
 def share_document(request, room_id):
     if request.method == "POST":
@@ -181,15 +223,6 @@ def room_view(request, room_id):
         "room_id": room_id,  # ✅ Required for export links
         "content": content.content
     })
-
-def document_view(request, room_id):
-    room = get_object_or_404(Room, id=room_id)
-    room_content, created = RoomContent.objects.get_or_create(room=room)
-    return render(request, 'document.html', {
-        'room': room,
-        'content': room_content.content
-    })
-
 @csrf_exempt
 @login_required
 def save_document(request, room_id):
