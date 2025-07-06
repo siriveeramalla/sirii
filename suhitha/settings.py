@@ -20,7 +20,8 @@ SECRET_KEY = "sirisuhitha@12"
 DEBUG = True
 ALLOWED_HOSTS = ["*","colab-document.onrender.com"]
 CSRF_TRUSTED_ORIGINS = [
-    'https://colab-document.onrender.com'
+    'https://colab-document.onrender.com',
+    'https://colab-7asj.onrender.com',
 ]
 
 INSTALLED_APPS = [
