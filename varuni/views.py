@@ -132,7 +132,7 @@ def export_pdf(request, room_id):
 def update_editing_status(request, room_id):
     if request.method == "POST" and request.user.is_authenticated:
         cache_key = f"editing:{room_id}:{request.user.username}"
-        cache.set(cache_key, True, timeout=10)  # user is "editing" for 10 seconds
+        cache.set(cache_key, True, timeout=10)  
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'}, status=400)
 
@@ -167,18 +167,18 @@ def register(request):
                 user = User.objects.create_user(username=username, email=email, password=password1)
                 user.save()
 
-                # Authenticate the user
+                
                 user = authenticate(request, username=username, password=password1)
                 if user is not None:
                     login(request, user)
 
-                return redirect('dashboard')  # or wherever you want
+                return redirect('dashboard')  
         else:
             messages.error(request, 'Passwords do not match.')
     return render(request, 'register.html')
 @login_required
 def dashboard(request):
-    rooms = Room.objects.all()  # Get all rooms
+    rooms = Room.objects.all()  
     return render(request, "dashboard.html", {"rooms": rooms})
 @login_required
 def create_room(request):
@@ -202,7 +202,7 @@ def join_room(request, room_id):
         if entered_password == room.password:
             room.participants.add(request.user)
 
-            # ✅ Create or update UserStatus with valid room
+            
             UserStatus.objects.update_or_create(
                 user=request.user,
                 room=room,
@@ -220,7 +220,7 @@ def room_view(request, room_id):
     content, _ = RoomContent.objects.get_or_create(room=room)
     return render(request, "document.html", {
         "room": room,
-        "room_id": room_id,  # ✅ Required for export links
+        "room_id": room_id,  
         "content": content.content
     })
 @csrf_exempt
@@ -252,7 +252,7 @@ def get_active_users(request, room_id):
             active_user_ids.append(int(user_id))
 
     users_in_room = UserStatus.objects.filter(room_id=room_id, user_id__in=active_user_ids)
-    # Only show users who are really logged in
+    
     return JsonResponse({
         "users": [u.user.username for u in users_in_room]
     })
@@ -262,7 +262,7 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
 
-            # Check for active sessions of the same user
+            
             sessions = Session.objects.filter(expire_date__gte=timezone.now())
             for session in sessions:
                 data = session.get_decoded()
@@ -274,7 +274,7 @@ def login_view(request):
 
             login(request, user)
 
-            # ✅ DO NOT update UserStatus here — wait until the user joins a room
+            
             return redirect('dashboard')
     else:
         form = AuthenticationForm()
@@ -290,7 +290,7 @@ def custom_logout(request):
     logout(request)
     return redirect('home')
 def logout_room_users(request, room_id):
-    if request.user.is_superuser:  # Only admin allowed
+    if request.user.is_superuser:  
         count, _ = UserStatus.objects.filter(room_id=room_id).delete()
         return HttpResponse(f"{count} users logged out from room {room_id}")
     return HttpResponse("Unauthorized", status=401)
@@ -336,7 +336,7 @@ def reset_password(request):
             user.set_password(password)
             user.save()
             messages.success(request, "Password reset successful. Please login.")
-            return redirect('login')  # Update with your login URL name
+            return redirect('login')  
         else:
             messages.error(request, "Passwords do not match.")
             return redirect('reset_password')

@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from channels.db import database_sync_to_async
 from .models import Room, RoomContent
 
-active_users = {}  # room_id -> { username: channel_name }
+active_users = {}  
 
 class DocumentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -16,12 +16,12 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        # Track user in active_users
+        
         if self.room_id not in active_users:
             active_users[self.room_id] = {}
         active_users[self.room_id][self.username] = self.channel_name
 
-        # Notify others
+        
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -31,7 +31,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
             }
         )
 
-        # Send existing document content
+        
         content = await self.get_room_content(self.room_id)
         await self.send(text_data=json.dumps({
             'type': 'load',
@@ -44,7 +44,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         if self.room_id in active_users and self.username in active_users[self.room_id]:
             del active_users[self.room_id][self.username]
 
-            # Notify others
+            
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -77,7 +77,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
             }))
 
         elif msg_type == "join-call":
-            # Notify all others that this user joined the call
+            
             for user, channel in active_users[self.room_id].items():
                 if user != self.username:
                     await self.channel_layer.send(channel, {
@@ -98,7 +98,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
                     "payload": data.get("offer") or data.get("answer") or data.get("candidate")
                 })
 
-    # Custom message types
+    
 
     async def document_edit(self, event):
         if event["username"] != self.username:
@@ -138,7 +138,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
             **({"candidate": event["payload"]} if event["message_type"] == "ice-candidate" else {}),
         }))
 
-    # DB helpers
+   
     @database_sync_to_async
     def get_room_content(self, room_id):
         room = Room.objects.get(id=room_id)

@@ -39,7 +39,7 @@ INSTALLED_APPS = [
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, "templates")],  # ✅ Corrected Path
+        'DIRS': [os.path.join(BASE_DIR, "templates")],  
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -63,7 +63,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "allauth.account.middleware.AccountMiddleware",  # ✅ Add this line
+    "allauth.account.middleware.AccountMiddleware",  
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -75,17 +75,13 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 ROOT_URLCONF = "suhitha.urls"
 
-
-   
-
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'colab_doc_o6sd',
-        'USER': 'colab_doc_user',
-        'PASSWORD': 'Xniq8RSdt4JHu0KIUzWYvh55sUXVYpsP',
-        'HOST': 'dpg-d1567rm3jp1c73fh2co0-a.oregon-postgres.render.com',
+        'NAME': 'colab_fbbw',
+        'USER': 'colab_fbbw_user',
+        'PASSWORD': 'z3Fe8AJ4wD55fvJCTxCLRvPrN7bFxA46',
+        'HOST': 'dpg-d1lrnd2li9vc73ea6pb0-a.oregon-postgres.render.com',
         'PORT': '5432',
         'OPTIONS': {
             'sslmode': 'require',
@@ -93,6 +89,22 @@ DATABASES = {
        
     }
 }
+
+'''DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'colab_doc_o6sd',
+        'USER': 'colab_doc_user',
+        'PASSWORD': 'Xniq8RSdt4JHu0KIUzWYvh55sUXVYpsP',
+        'HOST': 'dpg-d1l04aur433s73d3qo0g-a.oregon-postgres.render.com',
+        'PORT': '5432',
+        'OPTIONS': {
+            'sslmode': 'require',
+        }
+       
+    }
+}'''
+
 
 
 
@@ -107,18 +119,15 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 
-#EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'suhithamareddy2709@gmail.com'
-EMAIL_HOST_PASSWORD = 'eaez qulf tbca tjkx'  # Or Gmail App password
-
+EMAIL_HOST_PASSWORD = 'eaez qulf tbca tjkx'  
 
 SILENCED_SYSTEM_CHECKS = ["models.W036"]
-
-# settings.py
 
 ASGI_APPLICATION = 'suhitha.asgi.application'
 

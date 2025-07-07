@@ -38,7 +38,7 @@ editor.addEventListener('input', () => {
         content: editor.value
     }));
 
-    setTimeout(() => isLocalChange = false, 100);  // Avoid echo loop
+    setTimeout(() => isLocalChange = false, 100);  
 });
 
 editor.addEventListener('keyup', () => {

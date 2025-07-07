@@ -350,7 +350,7 @@
             50% { opacity: 0.5; }
         }
 
-        /* Enhanced Modal Styles */
+        
         .modal {
             display: none;
             position: fixed;
@@ -464,7 +464,7 @@
             transform: translateY(0);
         }
 
-        /* Video Call Modal */
+       
         .video-modal {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
@@ -492,7 +492,7 @@
             60% { transform: translateY(-5px); }
         }
 
-        /* Enhanced Cursor Styles */
+       
         .user-cursor {
             position: absolute;
             pointer-events: none;
@@ -569,7 +569,7 @@
             51%, 100% { opacity: 0.3; }
         }
 
-        /* Success/Error Messages */
+      
         .toast {
             position: fixed;
             top: 80px;
@@ -602,7 +602,7 @@
             }
         }
 
-        /* Responsive Design */
+       
         @media (max-width: 768px) {
             .container {
                 width: 95%;
@@ -699,7 +699,7 @@
         </div>
 
         <div class="toolbar">
-            <!-- Format Group -->
+           
             <div class="toolbar-group">
                 <button type="button" class="format-btn" onclick="formatText('bold')" title="Bold"><b>B</b></button>
                 <button type="button" class="format-btn" onclick="formatText('italic')" title="Italic"><i>I</i></button>
@@ -707,7 +707,7 @@
                 <button type="button" class="format-btn" onclick="formatText('strikeThrough')" title="Strikethrough"><s>S</s></button>
             </div>
 
-            <!-- Font Group -->
+            
             <div class="toolbar-group">
                 <select id="font-size" onchange="changeFontSize(this.value)" title="Font Size">
                     <option value="12">12px</option>
@@ -723,7 +723,7 @@
                 <input type="color" id="bg-color" onchange="changeBackgroundColor(this.value)" title="Background Color" value="#ffffff">
             </div>
 
-            <!-- Alignment Group -->
+            
             <div class="toolbar-group">
                 <button type="button" onclick="formatText('justifyLeft')" title="Align Left">⬅️</button>
                 <button type="button" onclick="formatText('justifyCenter')" title="Align Center">↔️</button>
@@ -731,32 +731,26 @@
                 <button type="button" onclick="formatText('justifyFull')" title="Justify">↕️</button>
             </div>
 
-            <!-- List Group -->
+            
             <div class="toolbar-group">
                 <button type="button" onclick="formatText('insertUnorderedList')" title="Bullet List">• List</button>
                 <button type="button" onclick="formatText('insertOrderedList')" title="Numbered List">1. List</button>
             </div>
 
-            <!-- Insert Group -->
+           
             <div class="toolbar-group">
                 <button type="button" class="insert-btn" onclick="insertTable()" title="Insert Table">📋 Table</button>
                 <button type="button" class="insert-btn" onclick="insertHR()" title="Insert Line">➖ Line</button>
                 <button type="button" class="insert-btn" onclick="insertImage()" title="Insert Image">🖼️ Image</button>
             </div>
 
-            <!-- Action Group -->
+           
             <div class="toolbar-group">
                 <button onclick="document.execCommand('undo', false, null)" title="Undo">↶ Undo</button>
                 <button onclick="document.execCommand('redo', false, null)" title="Redo">↷ Redo</button>
                 <button id="share-btn" class="share-btn" onclick="openShareModal()" title="Share Document">📧 Share</button>
             </div>
              <h2>Welcome, {{ user.username }}</h2>
-
-    <button id="start-video-call">Start Video Call</button>
-
-    <div id="video-grid" class="video-grid"></div>
-
-    <script src="{% static 'js/webrtc.js' %}"></script>
 </div>
 
         <div id="editor" contenteditable="true">
@@ -765,7 +759,7 @@
         <div id="cursors-container"></div>
     </div>
       
-    <!-- Share Modal -->
+  
     <div id="shareModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeShareModal()">&times;</span>
@@ -787,7 +781,7 @@
     </div>
 <div> 
     <script>
-        // Global variables
+      
         let roomId = "{{ room.id }}";
         let username = "{{ request.user.username }}";
         let editor = document.getElementById("editor");
@@ -804,7 +798,7 @@
         let callStartTime;
         let callTimer;
 
-        // Text formatting functions
+      
         function formatText(command) {
             document.execCommand(command, false, null);
             editor.focus();
@@ -875,7 +869,7 @@
                 sendUpdate();
             }
         }
-        // Toast notification function
+       
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -887,7 +881,7 @@
             }, 4000);
         }
 
-        // Connection status update
+    
         function updateConnectionStatus(status) {
             const statusElement = document.querySelector('.connection-status');
             const saveStatus = document.getElementById('save-status');
@@ -910,7 +904,7 @@
             }
         }
 
-        // WebSocket connection
+      
         function connectWebSocket() {
             console.log("Attempting WebSocket connection...");
             updateConnectionStatus('connecting');
@@ -933,24 +927,24 @@
                         const data = JSON.parse(event.data);
                         console.log("Received WebSocket message:", data);
 
-                        // Handle content updates
+                       
                         if (data.type === 'edit' && !isLocalChange && data.content !== lastContent) {
                             editor.innerHTML = data.content;
                             lastContent = data.content;
                             updateLastEditTime();
                         }
 
-                        // Handle cursor updates
+                      
                         if (data.type === 'cursor') {
                             updateCursors(data.cursors || {});
                         }
 
-                        // Handle user presence
+                      
                         if (data.type === "user_joined" || data.type === "user_left") {
                             updateActiveUsers();
                         }
 
-                        // Handle video call notifications
+                       
                         if (data.type === 'video_call_start' && data.username !== username) {
                             showToast(`${data.username} started a video call`, 'success');
                         }
@@ -993,7 +987,7 @@
             }
         }
 
-        // Auto-save mode when WebSocket fails
+       
         function startAutoSaveMode() {
             console.log("Starting auto-save mode (WebSocket unavailable)");
             updateConnectionStatus('disconnected');
@@ -1005,7 +999,7 @@
             }, 3000);
         }
 
-        // Auto-save functionality
+       
         function autoSave(force = false) {
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
@@ -1056,7 +1050,7 @@
             }, 1500);
         }
 
-        // Update last edit time
+        
         function updateLastEditTime() {
             const now = new Date();
             const timeString = now.toLocaleTimeString();
@@ -1064,7 +1058,7 @@
             document.getElementById('last-edit-user').textContent = username;
         }
 
-        // Get cursor position for contentEditable
+       
         function getTextOffset() {
             const selection = window.getSelection();
             if (!selection || selection.rangeCount === 0) return 0;
@@ -1077,7 +1071,7 @@
             return preCaretRange.toString().length;
         }
 
-        // Update cursors display
+     
         function updateCursors(cursors) {
             console.log("Updating cursors:", cursors);
             const cursorsContainer = document.getElementById('cursors-container');
@@ -1100,7 +1094,7 @@
             }
         }
 
-        // Calculate Y position for cursor
+
         function getCursorYPosition(element, position) {
             const text = element.textContent || element.innerText || '';
             const dummy = document.createElement('div');
@@ -1121,7 +1115,7 @@
             return Math.max(0, height - scrollOffset);
         }
 
-        // Send content and cursor updates
+        
         function sendUpdate() {
             const currentContent = editor.innerHTML;
             const cursorPosition = getTextOffset();
@@ -1134,13 +1128,13 @@
             if (isConnected && socket && socket.readyState === WebSocket.OPEN) {
                 isLocalChange = true;
                 
-                // Send content update
+               
                 socket.send(JSON.stringify({
                     type: 'edit',
                     content: currentContent
                 }));
                 
-                // Send cursor update
+             
                 socket.send(JSON.stringify({
                     type: 'cursor',
                     username: username,
@@ -1152,7 +1146,7 @@
             }
         }
 
-        // Active users management
+        
         function updateActiveUsers() {
             fetch(`/get-active-users/${roomId}/`)
                 .then(response => {
@@ -1186,7 +1180,7 @@
                 });
         }
 
-        // Share Modal Functions
+       
         function openShareModal() {
             document.getElementById("shareModal").style.display = "block";
         }
@@ -1207,7 +1201,7 @@
                 return;
             }
             
-            // Validate email format
+            
             const emailList = emails.split(',').map(email => email.trim());
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const invalidEmails = emailList.filter(email => !emailRegex.test(email));
@@ -1219,7 +1213,7 @@
             
             const roomUrl = `${window.location.origin}/join-room/${roomId}/`;
             
-            // Show loading state
+            
             const sendButton = document.querySelector('#shareModal .btn-primary');
             const originalText = sendButton.textContent;
             sendButton.textContent = '📤 Sending...';
@@ -1259,13 +1253,13 @@
                 showToast(`❌ Failed to send invitations: ${error.message}`, "error");
             })
             .finally(() => {
-                // Reset button state
+                
                 sendButton.textContent = originalText;
                 sendButton.disabled = false;
             });
         }
 
-        // Event listeners
+   
         editor.addEventListener('input', sendUpdate);
         editor.addEventListener('keyup', sendUpdate);
         editor.addEventListener('mouseup', sendUpdate);
@@ -1274,7 +1268,7 @@
             setTimeout(sendUpdate, 100);
         });
 
-        // Close modals when clicking outside
+       
         window.onclick = function(event) {
             const shareModal = document.getElementById("shareModal");
             const videoModal = document.getElementById("videoModal");
@@ -1287,7 +1281,7 @@
             }
         }
 
-        // Keyboard shortcuts
+       
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey || e.metaKey) {
                 switch(e.key) {
@@ -1312,20 +1306,20 @@
             }
         });
 
-        // Initialize everything
+      
         console.log("Initializing document editor...");
         
-        // Set initial last edit time
+      
         updateLastEditTime();
         
-        // Connect WebSocket
+       
         connectWebSocket();
         
-        // Load active users
+       
         updateActiveUsers();
         setInterval(updateActiveUsers, 5000);
         
-        // Clean up old cursors
+        
         setInterval(() => {
             const now = Date.now();
             activeCursors.forEach((cursor, username) => {
@@ -1338,12 +1332,12 @@
             });
         }, 5000);
 
-        // Focus editor
+      
         setTimeout(() => {
             editor.focus();
         }, 100);
 
-        // Periodic save
+       
         setInterval(() => {
             autoSave();
         }, 30000);
@@ -1373,7 +1367,7 @@
         setInterval(updateActiveUsers, 1000);
 
 
-        // Focus editor
+        
         setTimeout(() => {
             editor.focus();
         }, 100);
