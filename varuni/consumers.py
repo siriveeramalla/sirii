@@ -57,8 +57,16 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         msg_type = data.get("type")
-
-        if msg_type == "edit":
+        if msg_type == 'chat':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'username': data['username'],
+                    'message': data['message']
+                }
+        )
+        elif msg_type == "edit":
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -109,35 +117,13 @@ class DocumentConsumer(AsyncWebsocketConsumer):
                 "cursor": event.get("cursor")
             }))
 
-    async def user_join(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "user_join",
-            "username": event["username"],
-            "users": event["users"]
-        }))
 
-    async def user_leave(self, event):
+    async def chat_message(self, event):
         await self.send(text_data=json.dumps({
-            "type": "user_leave",
-            "username": event["username"],
-            "users": event["users"]
+            'type': 'chat',
+            'username': event['username'],
+            'message': event['message']
         }))
-
-    async def call_joined(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "join-call",
-            "username": event["username"]
-        }))
-
-    async def webrtc_signal(self, event):
-        await self.send(text_data=json.dumps({
-            "type": event["message_type"],
-            "username": event["username"],
-            **({"offer": event["payload"]} if event["message_type"] == "offer" else {}),
-            **({"answer": event["payload"]} if event["message_type"] == "answer" else {}),
-            **({"candidate": event["payload"]} if event["message_type"] == "ice-candidate" else {}),
-        }))
-
    
     @database_sync_to_async
     def get_room_content(self, room_id):

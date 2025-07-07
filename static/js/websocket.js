@@ -57,36 +57,3 @@ saveButton.addEventListener('click', () => {
     }));
 });
 
-function updateCursors(cursors) {
-    cursorsContainer.innerHTML = '';
-
-    for (const user in cursors) {
-        if (user !== username) {
-            const pos = cursors[user];
-            const marker = document.createElement('div');
-            marker.className = 'cursor-marker';
-            marker.style.top = `${getCursorYPosition(editor, pos)}px`;
-            marker.innerText = user;
-            cursorsContainer.appendChild(marker);
-        }
-    }
-}
-
-function getCursorYPosition(textarea, position) {
-    const dummy = document.createElement('div');
-    dummy.style.visibility = 'hidden';
-    dummy.style.position = 'absolute';
-    dummy.style.whiteSpace = 'pre-wrap';
-    dummy.style.wordWrap = 'break-word';
-    dummy.style.width = `${textarea.offsetWidth}px`;
-    dummy.style.font = window.getComputedStyle(textarea).font;
-    dummy.textContent = textarea.value.substring(0, position);
-
-    document.body.appendChild(dummy);
-    const height = dummy.offsetHeight;
-    document.body.removeChild(dummy);
-
-    const scrollOffset = textarea.scrollTop;
-
-    return height - scrollOffset;
-}

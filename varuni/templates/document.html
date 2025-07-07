@@ -1,4 +1,3 @@
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -741,7 +740,7 @@
             <div class="toolbar-group">
                 <button type="button" class="insert-btn" onclick="insertTable()" title="Insert Table">📋 Table</button>
                 <button type="button" class="insert-btn" onclick="insertHR()" title="Insert Line">➖ Line</button>
-                <button type="button" class="insert-btn" onclick="insertImage()" title="Insert Image">🖼️ Image</button>
+                
             </div>
 
            
@@ -860,15 +859,7 @@
             sendUpdate();
         }
 
-        function insertImage() {
-            const url = prompt('Enter image URL:');
-            if (url) {
-                const imgHTML = `<img src="${url}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Inserted image">`;
-                document.execCommand('insertHTML', false, imgHTML);
-                editor.focus();
-                sendUpdate();
-            }
-        }
+        
        
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
