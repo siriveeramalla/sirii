@@ -262,7 +262,6 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
 
-            
             sessions = Session.objects.filter(expire_date__gte=timezone.now())
             for session in sessions:
                 data = session.get_decoded()
@@ -274,13 +273,13 @@ def login_view(request):
 
             login(request, user)
 
-            
-            return redirect('dashboard')
+            next_url = request.POST.get('next') or 'dashboard'
+            return redirect(next_url)
     else:
         form = AuthenticationForm()
 
-    return render(request, 'login.html', {'form': form})
-
+    next_url = request.GET.get('next', '')
+    return render(request, 'login.html', {'form': form, 'next': next_url})
 def custom_logout(request):
     try:
       if request.user.is_authenticated:

@@ -108,6 +108,7 @@
         {% if message %}
             <p class="message">{{ message }}</p>
         {% endif %}
+        <input type="hidden" name="next" value="{{ next }}">
         <button type="submit">Login</button>
     </form>
     <a class="link" href="{% url 'register' %}">Don't have an account? Register</a>
