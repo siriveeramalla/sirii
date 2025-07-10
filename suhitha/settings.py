@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "sirisuhitha@12"
 DEBUG = True
-ALLOWED_HOSTS = ["*","colab-document.onrender.com"]
+ALLOWED_HOSTS = ["*","colab-rm1h.onrender.com"]
 CSRF_TRUSTED_ORIGINS = [
     'https://colab-rm1h.onrender.com',
 ]
@@ -129,6 +129,7 @@ EMAIL_HOST_PASSWORD = 'eaez qulf tbca tjkx'
 SILENCED_SYSTEM_CHECKS = ["models.W036"]
 
 ASGI_APPLICATION = 'suhitha.asgi.application'
+WSGI_APPLICATION = 'suhitha.wsgi.application'
 
 CHANNEL_LAYERS = {
     'default': {
