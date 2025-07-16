@@ -128,14 +128,18 @@ EMAIL_HOST_PASSWORD = 'eaez qulf tbca tjkx'
 
 SILENCED_SYSTEM_CHECKS = ["models.W036"]
 
-ASGI_APPLICATION = 'suhitha.asgi.application'
+
 WSGI_APPLICATION = 'suhitha.wsgi.application'
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.environ.get("REDIS_URL", "redis://127.0.0.1:6379")],
+        },
     },
 }
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]

@@ -918,7 +918,9 @@
                         const data = JSON.parse(event.data);
                         console.log("Received WebSocket message:", data);
 
-                       
+                        if (data.type === "edit" && data.username !== currentUsername) {
+                        document.getElementById("editor").value = data.content;
+    }
                         if (data.type === 'edit' && !isLocalChange && data.content !== lastContent) {
                             editor.innerHTML = data.content;
                             lastContent = data.content;
