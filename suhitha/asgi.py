@@ -1,19 +1,11 @@
 import os
 import django
-from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
+from varuni.routing import websocket_urlpatterns
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'suhitha.settings')
-django.setup()  
-
-import varuni.routing  
-
+django.setup()
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
-        URLRouter(
-            varuni.routing.websocket_urlpatterns
-        )
-    ),
+    "websocket": URLRouter(websocket_urlpatterns),
 })

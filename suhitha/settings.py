@@ -128,7 +128,7 @@ EMAIL_HOST_PASSWORD = 'eaez qulf tbca tjkx'
 
 SILENCED_SYSTEM_CHECKS = ["models.W036"]
 
-
+ASGI_APPLICATION = 'suhitha.asgi.application'
 WSGI_APPLICATION = 'suhitha.wsgi.application'
 
 CHANNEL_LAYERS = {
