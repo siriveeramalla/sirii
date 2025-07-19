@@ -10,3 +10,6 @@ services:
       python manage.py migrate
     startCommand: daphne -b 0.0.0.0 -p 8000 suhitha.asgi:application
     healthCheckPath: /
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: suhitha.settings
