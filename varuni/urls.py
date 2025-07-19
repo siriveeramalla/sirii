@@ -30,7 +30,6 @@ urlpatterns = [
     path('share-document/<int:room_id>/', views.share_document, name='share_document'),
     path('invite/<int:room_id>/', views.invite_user, name='invite_user'),
     path('join/<int:room_id>/', views.join_document, name='join_document'),
-
-
-
+     path('access_via_email/', views.access_via_email, name='access_via_email'),
+    path('signup_custom/', views.signup_custom, name='signup_custom'),
 ]

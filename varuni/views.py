@@ -340,3 +340,35 @@ def reset_password(request):
             messages.error(request, "Passwords do not match.")
             return redirect('reset_password')
     return render(request, 'reset_password.html')
+def signup_custom(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        email = request.session.get('pending_email') or request.POST['email']
+        password = request.POST['password']
+
+        user = User.objects.create_user(username=username, email=email, password=password)
+        user.save()
+
+        login(request, user)
+
+        room_id = request.session.get('pending_room_id')
+        if room_id:
+            return redirect(reverse('joinroom') + f'?room_id={room_id}')
+        else:
+            return redirect('home')
+    return render(request, 'signup.html')
+def access_via_email(request):
+    email = request.GET.get('email')
+    room_id = request.GET.get('room_id')
+
+    try:
+        user = User.objects.get(email=email)
+        # Authenticate and log in the user (without password only if safe)
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+        login(request, user)
+        return redirect(reverse('joinroom') + f'?room_id={room_id}')
+    except User.DoesNotExist:
+        # Store room ID in session and redirect to signup
+        request.session['pending_room_id'] = room_id
+        request.session['pending_email'] = email
+        return redirect('signup_custom')
